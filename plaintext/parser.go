@@ -103,7 +103,7 @@ func (p *parser) parseSong() (*songtools.Song, error) {
 				song.Nodes = append(song.Nodes, section)
 			}
 
-			chords, positions, isChordLine := parseLineForChords(text)
+			chords, positions, isChordLine := songtools.ParseTextForChords(text)
 			if !isChordLine {
 				if line != nil && line.Text == "" {
 					line.Text = text
@@ -148,39 +148,4 @@ func parseDirective(text string) (*songtools.Directive, error) {
 	}
 
 	return &songtools.Directive{parts[0], parts[1]}, nil
-}
-
-func parseLineForChords(text string) ([]*songtools.Chord, []int, bool) {
-
-	chords := []*songtools.Chord{}
-	positions := []int{}
-
-	i := 0
-	for i < len(text) {
-		for i < len(text) && text[i] == ' ' {
-			i++
-		}
-
-		if i == len(text) {
-			break
-		}
-
-		name := ""
-		pos := i
-		for i < len(text) && text[i] != ' ' {
-			name += string(text[i])
-			i++
-		}
-
-		chord, ok := songtools.ParseChord(name)
-		if !ok {
-			// we aren't a chord line
-			return nil, nil, false
-		}
-
-		chords = append(chords, chord)
-		positions = append(positions, pos)
-	}
-
-	return chords, positions, true
 }

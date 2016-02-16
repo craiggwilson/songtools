@@ -1,7 +1,7 @@
 package songtools
 
 // TransposeSongSet transposes a SongSet.
-func TransposeSongSet(ss *SongSet, interval int, names NoteNames) (*SongSet, error) {
+func TransposeSongSet(ss *SongSet, interval int, names *NoteNames) (*SongSet, error) {
 	newSongs := []*Song{}
 	for _, s := range ss.Songs {
 		newSong, err := TransposeSong(s, interval, names)
@@ -15,7 +15,7 @@ func TransposeSongSet(ss *SongSet, interval int, names NoteNames) (*SongSet, err
 }
 
 // TransposeSong transposes a Song.
-func TransposeSong(s *Song, interval int, names NoteNames) (*Song, error) {
+func TransposeSong(s *Song, interval int, names *NoteNames) (*Song, error) {
 	newNodes := []SongNode{}
 	for _, n := range s.Nodes {
 		switch typedN := n.(type) {
@@ -35,7 +35,7 @@ func TransposeSong(s *Song, interval int, names NoteNames) (*Song, error) {
 }
 
 // TransposeSection transposes a Section.
-func TransposeSection(s *Section, interval int, names NoteNames) (*Section, error) {
+func TransposeSection(s *Section, interval int, names *NoteNames) (*Section, error) {
 	newNodes := []SectionNode{}
 	for _, n := range s.Nodes {
 		switch typedN := n.(type) {
@@ -55,7 +55,7 @@ func TransposeSection(s *Section, interval int, names NoteNames) (*Section, erro
 }
 
 // TransposeLine transposes a Line.
-func TransposeLine(l *Line, interval int, names NoteNames) (*Line, error) {
+func TransposeLine(l *Line, interval int, names *NoteNames) (*Line, error) {
 	if l.Chords == nil {
 		return l, nil
 	}

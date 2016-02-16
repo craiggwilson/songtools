@@ -7,6 +7,7 @@ import (
 
 	"bytes"
 
+	"github.com/craiggwilson/songtools"
 	"github.com/craiggwilson/songtools/plaintext"
 	"github.com/kr/pretty"
 	. "github.com/smartystreets/goconvey/convey"
@@ -74,6 +75,14 @@ func TestParse(t *testing.T) {
 
 		w := bytes.NewBufferString("")
 		plaintext.WriteSongSet(w, set)
+
+		println(w.String())
+
+		noteNames, interval, _ := songtools.NoteNamesAndIntervalFromKeyToKey("Em", "F#m")
+		transposed, _ := songtools.TransposeSongSet(set, interval, noteNames)
+
+		w = bytes.NewBufferString("")
+		plaintext.WriteSongSet(w, transposed)
 
 		println(w.String())
 	})

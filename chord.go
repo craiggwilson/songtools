@@ -1,5 +1,7 @@
 package songtools
 
+import "fmt"
+
 // Chord is a named set of notes.
 type Chord struct {
 	Name   string
@@ -12,7 +14,7 @@ func (c *Chord) String() string {
 }
 
 // Interval returns a new chord at the specified interval.
-func (c *Chord) Interval(interval int, names NoteNames) *Chord {
+func (c *Chord) Interval(interval int, names *NoteNames) *Chord {
 	newRoot := c.Root.Interval(interval)
 	newName := newRoot.StringFromNames(names) + c.Suffix
 
@@ -26,12 +28,47 @@ const (
 	noteCount = 12
 )
 
+func NoteNamesAndIntervalFromKeyToKey(original, transposed string) (*NoteNames, int, error) {
+	oChord, ok := ParseChord(original)
+	if !ok {
+		return nil, 0, fmt.Errorf("not a key: %v", original)
+	}
+	tChord, ok := ParseChord(transposed)
+	if !ok {
+		return nil, 0, fmt.Errorf("not a key: %v", original)
+	}
+
+	names, err := NoteNamesFromKey(transposed)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return names, int(tChord.Root) - int(oChord.Root), nil
+}
+
+// NoteNamesFromKey gets the correct NoteNames for the given key.
+func NoteNamesFromKey(key string) (*NoteNames, error) {
+	for i := 0; i < len(sharpKeys); i++ {
+		if sharpKeys[i] == key {
+			return sharpNoteNames, nil
+		}
+
+		if i < len(flatKeys) && flatKeys[i] == key {
+			return flatNoteNames, nil
+		}
+	}
+
+	return nil, fmt.Errorf("invalid key name: %v", key)
+}
+
 // NoteNames is a dictionary for looking up a note name from it's chromatic number.
 type NoteNames [noteCount]string
 
 var (
-	sharpNoteNames = NoteNames{"A", "A#", "B", "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#"}
-	flatNoteNames  = NoteNames{"A", "Bb", "B", "C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab"}
+	sharpNoteNames = &NoteNames{"A", "A#", "B", "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#"}
+	flatNoteNames  = &NoteNames{"A", "Bb", "B", "C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab"}
+	sharpKeys      = []string{"A", "F#m", "B", "G#m", "C", "Am", "C#", "A#m", "D", "Bm", "E", "C#m", "F#", "D#m", "G", "Em"}
+	flatKeys       = []string{"Ab", "Fm", "Bb", "Gm", "Cb", "Abm", "Db", "Bbm", "Eb", "Cm", "F", "Dm", "Gb", "Ebm"}
 )
 
 func (n Note) String() string {
@@ -39,13 +76,50 @@ func (n Note) String() string {
 }
 
 // StringFromNames returns the name of a note.
-func (n Note) StringFromNames(names NoteNames) string {
+func (n Note) StringFromNames(names *NoteNames) string {
 	return names[n]
 }
 
 // Interval returns a new note at the specified interval.
 func (n Note) Interval(interval int) Note {
 	return Note((int(n) + interval) % noteCount)
+}
+
+// ParseTextForChords parses a line of text for chords and their positions. It returns true if
+// this was just a line of chords and false if it contains text other than chords.
+func ParseTextForChords(text string) ([]*Chord, []int, bool) {
+
+	chords := []*Chord{}
+	positions := []int{}
+
+	i := 0
+	for i < len(text) {
+		for i < len(text) && text[i] == ' ' {
+			i++
+		}
+
+		if i == len(text) {
+			break
+		}
+
+		name := ""
+		pos := i
+		for i < len(text) && text[i] != ' ' {
+			name += string(text[i])
+			i++
+		}
+
+		chord, ok := ParseChord(name)
+		if !ok {
+			// we aren't a chord line
+			return nil, nil, false
+		}
+
+		chords = append(chords, chord)
+		positions = append(positions, pos)
+	}
+
+	return chords, positions, true
 }
 
 // ParseChord parses some text and returns a chord.
