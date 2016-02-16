@@ -1,60 +1,60 @@
 package songtools
 
-import "strings"
+// SongSet is a set of songs.
+type SongSet struct {
+	Songs []*Song
+}
 
-// Song is a set of attributes, chords, and lyrics.
+// Song is a set of nodes.
 type Song struct {
-	Attributes map[string]string
-	Sections   []*Section
+	Nodes []SongNode
 }
 
-func NewSong() *Song {
-	return &Song{
-		Attributes: make(map[string]string),
-		Sections:   []*Section{},
-	}
+// SongNode represents a node that can appear in a song.
+type SongNode interface {
+	songNode()
 }
 
-func (s *Song) AddSection(kind SectionKind) *Section {
-	sec := newSection(kind)
-	s.Sections = append(s.Sections, sec)
-	return sec
+func (c *Comment) songNode()   {}
+func (d *Directive) songNode() {}
+func (s *Section) songNode()   {}
+
+// Directive contains a name and value associated with either
+// a Song or a Section.
+type Directive struct {
+	Name  string
+	Value string
 }
 
-func (s *Song) SetAttribute(name, value string) {
-	s.Attributes[strings.ToLower(name)] = value
+// Comment contains text that represents a comment not intended
+// for output in print form.
+type Comment struct {
+	Text string
 }
 
+// SectionKind is the type of section. Examples are Chorus, Verse, and Bridge.
 type SectionKind string
 
+// Section contains nodes
 type Section struct {
 	Kind  SectionKind
-	Lines []*Line
+	Nodes []SectionNode
 }
 
-func newSection(kind SectionKind) *Section {
-	return &Section{
-		Kind:  kind,
-		Lines: []*Line{},
-	}
+// SectionNode represents a node that can appear in a section.
+type SectionNode interface {
+	sectionNode()
 }
 
-func (s *Section) AddLine(text string) *Line {
-	line := newLine(text)
-	s.Lines = append(s.Lines, line)
-	return line
-}
+func (c *Comment) sectionNode()   {}
+func (d *Directive) sectionNode() {}
+func (l *Line) sectionNode()      {}
 
+// Line represents a lyric line and/or chords.
 type Line struct {
 	Text           string
 	Chords         []*Chord
 	ChordPositions []int
-}
-
-func newLine(text string) *Line {
-	return &Line{
-		Text: text,
-	}
 }
 
 // Chord is a named set of notes.
@@ -62,14 +62,6 @@ type Chord struct {
 	Name   string
 	Root   Note
 	Suffix string
-}
-
-func newChord(name string, root Note, suffix string) *Chord {
-	return &Chord{
-		Name:   name,
-		Root:   root,
-		Suffix: suffix,
-	}
 }
 
 func (c *Chord) String() string {
@@ -81,29 +73,18 @@ type Note int
 
 const (
 	noteCount = 12
-	A         = Note(0)
-	ASharp    = Note(1)
-	B         = Note(2)
-	C         = Note(3)
-	CSharp    = Note(4)
-	D         = Note(5)
-	DSharp    = Note(6)
-	E         = Note(7)
-	F         = Note(8)
-	FSharp    = Note(9)
-	G         = Note(10)
-	GSharp    = Note(11)
 )
 
+// ChordNames is a dictionary for looking up a chord name from it's chromatic number.
 type ChordNames [noteCount]string
 
 var (
-	SharpChordNames = ChordNames{"A", "A#", "B", "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#"}
-	FlatChordNames  = ChordNames{"A", "Bb", "B", "C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab"}
+	sharpChordNames = ChordNames{"A", "A#", "B", "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#"}
+	flatChordNames  = ChordNames{"A", "Bb", "B", "C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab"}
 )
 
 func (n Note) String() string {
-	return n.StringFromNames(SharpChordNames)
+	return n.StringFromNames(sharpChordNames)
 }
 
 func (n Note) StringFromNames(names ChordNames) string {
@@ -130,7 +111,11 @@ func ParseChord(text string) (*Chord, bool) {
 		suffix = text[offset:]
 	}
 
-	return newChord(text, note, suffix), true
+	return &Chord{
+		Name:   text,
+		Root:   note,
+		Suffix: suffix,
+	}, true
 }
 
 func parseNote(text string) (Note, bool) {
@@ -141,7 +126,7 @@ func parseNote(text string) (Note, bool) {
 	// this is pretty slow... We can do better.
 	for len(text) > 0 {
 		for i := 0; i < noteCount; i++ {
-			if text == SharpChordNames[i] || text == FlatChordNames[i] {
+			if text == sharpChordNames[i] || text == flatChordNames[i] {
 				return Note(i), true
 			}
 		}

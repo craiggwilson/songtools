@@ -11,9 +11,10 @@ import (
 //https://bitbucket.org/llg/songbook/src/0ba011f0a3112dd45a075d09f088df6a29981a58/song/chordpro.go?at=default&fileviewer=file-view-default
 //http://www.vromans.org/johan/projects/Chordii/chordpro/index.html
 
-func Parse(src io.Reader) ([]*songtools.Song, error) {
+// Parse the src to create a songtools.SongSet.
+func Parse(src io.Reader) (*songtools.SongSet, error) {
 
-	scanner, err := NewScanner(src)
+	scanner, err := newScanner(src)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create a scanner: %v", err)
 	}
@@ -29,19 +30,19 @@ func Parse(src io.Reader) ([]*songtools.Song, error) {
 type parser struct {
 
 	// current token and text
-	scanner *Scanner
+	scanner *scanner
 }
 
-func (p *parser) parse() ([]*songtools.Song, error) {
-	token, _, err := p.scanner.Peek()
+func (p *parser) parse() (*songtools.SongSet, error) {
+	token, _, err := p.scanner.peek()
 	if err != nil {
 		return nil, fmt.Errorf("failed to consume initial token: %v", err)
 	}
-	if token == EofToken {
+	if token == eofToken {
 		return nil, nil
 	}
 
-	songs := []*songtools.Song{}
+	set := &songtools.SongSet{}
 	//for {
 	song, err := p.parseSong()
 	if err != nil {
@@ -50,61 +51,87 @@ func (p *parser) parse() ([]*songtools.Song, error) {
 	// if song == nil {
 	// 	break
 	// }
-	songs = append(songs, song)
+	set.Songs = append(set.Songs, song)
 	//}
 
-	return songs, nil
+	return set, nil
 }
 
 func (p *parser) parseSong() (*songtools.Song, error) {
-	song := songtools.NewSong()
 
-	var lastToken Token
-	token, text, err := p.scanner.Next()
+	song := &songtools.Song{}
+
+	token, text, err := p.scanner.next()
 	if err != nil {
 		return nil, err
 	}
 
 	var section *songtools.Section
 	var line *songtools.Line
+	numNewLines := 0
 
-	for token != EofToken {
+	for token != eofToken {
 		switch token {
-		case DirectiveToken:
-			parts, err := parseDirective(text)
+		case directiveToken:
+			d, err := parseDirective(text)
 			if err != nil {
 				return nil, err
 			}
-			song.SetAttribute(parts[0], parts[1])
-		case SectionToken:
-			section = song.AddSection(songtools.SectionKind(text))
-		case TextToken:
-			if section == nil {
-				section = song.AddSection(songtools.SectionKind("Verse"))
+
+			if numNewLines == 2 {
+				section = nil
 			}
 
-			chords, positions, isChordLine := parseLine(text)
+			if section != nil {
+				section.Nodes = append(section.Nodes, d)
+			} else {
+				song.Nodes = append(song.Nodes, d)
+			}
+			line = nil
+			numNewLines = 0
+		case sectionToken:
+			section = &songtools.Section{
+				Kind: songtools.SectionKind(text),
+			}
+
+			song.Nodes = append(song.Nodes, section)
+			line = nil
+			numNewLines = 0
+		case textToken:
+			if section == nil {
+				section = &songtools.Section{}
+				song.Nodes = append(song.Nodes, section)
+			}
+
+			chords, positions, isChordLine := parseLineForChords(text)
 			if !isChordLine {
-				println(text)
 				if line != nil && line.Text == "" {
 					line.Text = text
 				} else {
-					section.AddLine(text)
+					line = &songtools.Line{
+						Text: text,
+					}
+					section.Nodes = append(section.Nodes, line)
 				}
 			} else {
-				line = section.AddLine("")
-				line.Chords = chords
-				line.ChordPositions = positions
+				line = &songtools.Line{
+					Chords:         chords,
+					ChordPositions: positions,
+				}
+				section.Nodes = append(section.Nodes, line)
 			}
-		case NewLineToken:
-			if lastToken == NewLineToken {
+			numNewLines = 0
+		case newLineToken:
+			numNewLines++
+			if numNewLines > 2 {
 				section = nil
+				line = nil
+				numNewLines = 0
 			}
 			break
 		}
 
-		lastToken = token
-		token, text, err = p.scanner.Next()
+		token, text, err = p.scanner.next()
 		if err != nil {
 			return nil, err
 		}
@@ -113,17 +140,17 @@ func (p *parser) parseSong() (*songtools.Song, error) {
 	return song, nil
 }
 
-func parseDirective(text string) ([]string, error) {
+func parseDirective(text string) (*songtools.Directive, error) {
 	parts := strings.SplitN(text, "=", 2)
 
-	if len(parts) < 2 {
+	if len(parts) != 2 {
 		return nil, fmt.Errorf("directives must be a key value pair with an '=' as the seperator: %v", text)
 	}
 
-	return parts, nil
+	return &songtools.Directive{parts[0], parts[1]}, nil
 }
 
-func parseLine(text string) ([]*songtools.Chord, []int, bool) {
+func parseLineForChords(text string) ([]*songtools.Chord, []int, bool) {
 
 	chords := []*songtools.Chord{}
 	positions := []int{}
@@ -132,6 +159,10 @@ func parseLine(text string) ([]*songtools.Chord, []int, bool) {
 	for i < len(text) {
 		for i < len(text) && text[i] == ' ' {
 			i++
+		}
+
+		if i == len(text) {
+			break
 		}
 
 		name := ""
@@ -143,7 +174,6 @@ func parseLine(text string) ([]*songtools.Chord, []int, bool) {
 
 		chord, ok := songtools.ParseChord(name)
 		if !ok {
-			println(name)
 			// we aren't a chord line
 			return nil, nil, false
 		}

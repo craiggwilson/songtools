@@ -6,52 +6,52 @@ import (
 	"io/ioutil"
 )
 
-type Token int
+type token int
 
 const (
-	EofToken Token = -(iota + 1)
-	NewLineToken
-	TextToken
-	DirectiveToken
-	SectionToken
+	eofToken token = -(iota + 1)
+	newLineToken
+	textToken
+	directiveToken
+	sectionToken
 )
 
 // Scanner produces tokens from text.
-type Scanner struct {
+type scanner struct {
 	src string
 	pos int
 
 	isPeeked  bool
 	peekPos   int
-	peekToken Token
+	peekToken token
 	peekText  string
 	peekErr   error
 }
 
 // NewScanner creates a new Scanner from a Reader.
-func NewScanner(src io.Reader) (*Scanner, error) {
+func newScanner(src io.Reader) (*scanner, error) {
 	b, err := ioutil.ReadAll(src)
 	if err != nil {
 		return nil, fmt.Errorf("unable to create a new scanner: %v", err)
 	}
 
-	s := &Scanner{src: string(b), pos: 0}
+	s := &scanner{src: string(b), pos: 0}
 	return s, nil
 }
 
 // Peek returns the next token, but doesn't advance the scanner.
-func (s *Scanner) Peek() (Token, string, error) {
+func (s *scanner) peek() (token, string, error) {
 	if !s.isPeeked {
 		s.isPeeked = true
 		s.peekPos = s.pos
-		s.peekToken, s.peekText, s.peekErr = s.Next()
+		s.peekToken, s.peekText, s.peekErr = s.next()
 	}
 
 	return s.peekToken, s.peekText, s.peekErr
 }
 
 // Next scans for the next token and the associated string.
-func (s *Scanner) Next() (Token, string, error) {
+func (s *scanner) next() (token, string, error) {
 	if s.isPeeked {
 		s.isPeeked = false
 		return s.peekToken, s.peekText, s.peekErr
@@ -67,15 +67,32 @@ func (s *Scanner) Next() (Token, string, error) {
 			return s.scanDirective()
 		case '[':
 			return s.scanSectionHeader()
+		case '{':
+			return s.scanCommentDirective()
 		default:
 			return s.scanText()
 		}
 	}
 
-	return EofToken, "", nil
+	return eofToken, "", nil
 }
 
-func (s *Scanner) scanDirective() (Token, string, error) {
+func (s *scanner) scanCommentDirective() (token, string, error) {
+	start := s.pos + 1
+	for s.pos < len(s.src) {
+		s.pos++
+		if s.src[s.pos] == '}' {
+			s.pos++
+			return directiveToken, "comment=" + s.src[start:s.pos-1], nil
+		}
+	}
+	if s.pos == len(s.src) {
+		return eofToken, "", fmt.Errorf("Expected '}', but found Eof")
+	}
+	return eofToken, "", nil
+}
+
+func (s *scanner) scanDirective() (token, string, error) {
 	start := s.pos + 1
 	for s.pos < len(s.src) {
 		if s.src[s.pos] == '\r' || s.src[s.pos] == '\n' {
@@ -84,10 +101,10 @@ func (s *Scanner) scanDirective() (Token, string, error) {
 		s.pos++
 	}
 
-	return DirectiveToken, s.src[start:s.pos], nil
+	return directiveToken, s.src[start:s.pos], nil
 }
 
-func (s *Scanner) scanNewLine() (Token, string, error) {
+func (s *scanner) scanNewLine() (token, string, error) {
 	for s.pos < len(s.src) {
 		if s.src[s.pos] == '\n' {
 			s.pos++
@@ -100,25 +117,25 @@ func (s *Scanner) scanNewLine() (Token, string, error) {
 		}
 	}
 
-	return NewLineToken, "", nil
+	return newLineToken, "", nil
 }
 
-func (s *Scanner) scanSectionHeader() (Token, string, error) {
+func (s *scanner) scanSectionHeader() (token, string, error) {
 	start := s.pos + 1
 	for s.pos < len(s.src) {
 		s.pos++
 		if s.src[s.pos] == ']' {
 			s.pos++
-			return SectionToken, s.src[start : s.pos-1], nil
+			return sectionToken, s.src[start : s.pos-1], nil
 		}
 	}
 	if s.pos == len(s.src) {
-		return EofToken, "", fmt.Errorf("Expected ']', but found Eof")
+		return eofToken, "", fmt.Errorf("Expected ']', but found Eof")
 	}
-	return EofToken, "", nil
+	return eofToken, "", nil
 }
 
-func (s *Scanner) scanText() (Token, string, error) {
+func (s *scanner) scanText() (token, string, error) {
 	start := s.pos
 	for s.pos < len(s.src) {
 		if s.src[s.pos] == '\r' || s.src[s.pos] == '\n' {
@@ -127,5 +144,5 @@ func (s *Scanner) scanText() (Token, string, error) {
 		s.pos++
 	}
 
-	return TextToken, s.src[start:s.pos], nil
+	return textToken, s.src[start:s.pos], nil
 }
