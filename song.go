@@ -1,5 +1,15 @@
 package songtools
 
+import (
+	"io"
+)
+
+// SongSetParser defines a function to parse a SongSet from a Reader.
+type SongSetParser func(src io.Reader) (*SongSet, error)
+
+// SongSetWriter defines a function to write a SongSet to a Writer.
+type SongSetWriter func(w io.Writer, ss *SongSet) error
+
 // SongSet is a set of songs.
 type SongSet struct {
 	Songs []*Song

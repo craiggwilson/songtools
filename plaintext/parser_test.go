@@ -66,7 +66,7 @@ You've got a friend. You've got a friend
 func TestParse(t *testing.T) {
 
 	Convey("Subject: Parse", t, func() {
-		set, err := plaintext.Parse(strings.NewReader(testSongText))
+		set, err := plaintext.ParseSongSet(strings.NewReader(testSongText))
 		So(err, ShouldBeNil)
 
 		So(set.Songs, ShouldHaveLength, 1)
