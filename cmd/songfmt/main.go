@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 
 	"github.com/codegangsta/cli"
 	"github.com/craiggwilson/songtools"
@@ -59,7 +60,16 @@ func main() {
 		}
 
 		for _, p := range args {
-			formatSong(p, opt)
+
+			paths, err := filepath.Glob(p)
+			if err != nil {
+				os.Stderr.WriteString(fmt.Sprintf("path %q is invalid: %v", p, err))
+				os.Exit(3)
+			}
+
+			for _, path := range paths {
+				formatSong(path, opt)
+			}
 		}
 	}
 

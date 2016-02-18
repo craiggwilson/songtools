@@ -42,17 +42,13 @@ func (p *parser) parse() (*songtools.SongSet, error) {
 		return nil, nil
 	}
 
+	// this format only supports a single song per file
 	set := &songtools.SongSet{}
-	//for {
 	song, err := p.parseSong()
 	if err != nil {
 		return nil, fmt.Errorf("error parsing song: %v", err)
 	}
-	// if song == nil {
-	// 	break
-	// }
 	set.Songs = append(set.Songs, song)
-	//}
 
 	return set, nil
 }
@@ -98,6 +94,16 @@ func (p *parser) parseSong() (*songtools.Song, error) {
 			line = nil
 			numNewLines = 0
 		case textToken:
+			if section != nil && numNewLines == 0 {
+				// we have text immediately following a section without a newline
+				directive := &songtools.Directive{
+					Name:  "comment",
+					Value: text,
+				}
+				section.Nodes = append(section.Nodes, directive)
+				break
+			}
+
 			if section == nil {
 				section = &songtools.Section{}
 				song.Nodes = append(song.Nodes, section)
@@ -105,6 +111,7 @@ func (p *parser) parseSong() (*songtools.Song, error) {
 
 			chords, positions, isChordLine := songtools.ParseTextForChords(text)
 			if !isChordLine {
+
 				if line != nil && line.Text == "" {
 					line.Text = text
 				} else {
@@ -113,6 +120,7 @@ func (p *parser) parseSong() (*songtools.Song, error) {
 					}
 					section.Nodes = append(section.Nodes, line)
 				}
+				line = nil
 			} else {
 				line = &songtools.Line{
 					Chords:         chords,

@@ -39,26 +39,43 @@ func writeSongNode(w io.Writer, n songtools.SongNode) error {
 	case *songtools.Directive:
 		return writeDirective(w, typedN)
 	case *songtools.Section:
-		if typedN.Kind == "" {
-			_, err := io.WriteString(w, "\n")
+		if typedN.Kind != "" {
+			_, err := fmt.Fprint(w, fmt.Sprintf("[%v]", typedN.Kind))
 			if err != nil {
 				return err
 			}
 		} else {
-			_, err := io.WriteString(w, fmt.Sprintf("\n[%v]\n", typedN.Kind))
+			// need to make sure we have an extra line here cause nothing
+			// other than space is separating this from the previous
+			// section
+			_, err := fmt.Fprintln(w)
 			if err != nil {
 				return err
 			}
 		}
 
-		for _, sn := range typedN.Nodes {
+		for i, sn := range typedN.Nodes {
+			if i == 0 {
+				if d, ok := sn.(*songtools.Directive); ok && isCommentDirective(d) {
+					_, err := fmt.Fprintln(w, d.Value)
+					if err != nil {
+						return err
+					}
+					continue
+				} else {
+					_, err := fmt.Fprintln(w)
+					if err != nil {
+						return err
+					}
+				}
+			}
 			err := writeSectionNode(w, sn)
 			if err != nil {
 				return err
 			}
 		}
 
-		_, err := io.WriteString(w, "\n")
+		_, err := fmt.Fprintln(w)
 		if err != nil {
 			return err
 		}
@@ -83,17 +100,17 @@ func writeSectionNode(w io.Writer, n songtools.SectionNode) error {
 }
 
 func writeComment(w io.Writer, c *songtools.Comment) error {
-	_, err := io.WriteString(w, fmt.Sprintf("{%v}\n", c.Text))
+	_, err := fmt.Fprintln(w, fmt.Sprintf("//%v", c.Text))
 	return err
 }
 
 func writeDirective(w io.Writer, d *songtools.Directive) error {
 
-	if strings.ToLower(d.Name) == "comment" || strings.ToLower(d.Name) == "c" {
-		_, err := io.WriteString(w, fmt.Sprintf("{%v}\n", d.Value))
+	if isCommentDirective(d) {
+		_, err := fmt.Fprintln(w, fmt.Sprintf("{%v}", d.Value))
 		return err
 	}
-	_, err := io.WriteString(w, fmt.Sprintf("#%v=%v\n", d.Name, d.Value))
+	_, err := fmt.Fprintln(w, fmt.Sprintf("#%v=%v", d.Name, d.Value))
 	return err
 }
 
@@ -101,27 +118,26 @@ func writeLine(w io.Writer, l *songtools.Line) error {
 	if l.Chords != nil {
 		pos := 0
 		for i := 0; i < len(l.Chords); i++ {
-			_, err := io.WriteString(w, strings.Repeat(" ", l.ChordPositions[i]-pos))
+			_, err := fmt.Fprint(w, strings.Repeat(" ", l.ChordPositions[i]-pos))
 			if err != nil {
 				return err
 			}
-			_, err = io.WriteString(w, l.Chords[i].Name)
+			_, err = fmt.Fprint(w, l.Chords[i].Name)
 			if err != nil {
 				return err
 			}
 			pos = l.ChordPositions[i] + len(l.Chords[i].Name)
 		}
-		_, err := io.WriteString(w, "\n")
+		_, err := fmt.Fprintln(w)
 		if err != nil {
 			return err
 		}
 	}
 
-	_, err := io.WriteString(w, l.Text)
-	if err != nil {
-		return err
-	}
-
-	_, err = io.WriteString(w, "\n")
+	_, err := fmt.Fprintln(w, l.Text)
 	return err
+}
+
+func isCommentDirective(d *songtools.Directive) bool {
+	return strings.ToLower(d.Name) == "comment" || strings.ToLower(d.Name) == "c"
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"strings"
 )
 
 type token int
@@ -15,6 +16,23 @@ const (
 	directiveToken
 	sectionToken
 )
+
+func (t token) String() string {
+	switch t {
+	case eofToken:
+		return "<eof>"
+	case newLineToken:
+		return "<newline>"
+	case textToken:
+		return "<text>"
+	case directiveToken:
+		return "<directive>"
+	case sectionToken:
+		return "<section>"
+	default:
+		return "<unknown>"
+	}
+}
 
 // Scanner produces tokens from text.
 type scanner struct {
@@ -139,6 +157,9 @@ func (s *scanner) scanText() (token, string, error) {
 	start := s.pos
 	for s.pos < len(s.src) {
 		if s.src[s.pos] == '\r' || s.src[s.pos] == '\n' {
+			if strings.TrimSpace(s.src[start:s.pos]) == "" {
+				return s.scanNewLine()
+			}
 			break
 		}
 		s.pos++
