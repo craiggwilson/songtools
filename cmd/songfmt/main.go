@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 
 	"github.com/codegangsta/cli"
-	"github.com/craiggwilson/songtools"
-	"github.com/craiggwilson/songtools/plaintext"
+	"github.com/songtools/songtools"
+	"github.com/songtools/songtools/plaintext"
 )
 
 func main() {

@@ -5,7 +5,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/craiggwilson/songtools"
+	"github.com/songtools/songtools"
 )
 
 // WriteSongSet writes multiple songs the same writer.

@@ -5,7 +5,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/craiggwilson/songtools"
+	"github.com/songtools/songtools"
 )
 
 //https://bitbucket.org/llg/songbook/src/0ba011f0a3112dd45a075d09f088df6a29981a58/song/chordpro.go?at=default&fileviewer=file-view-default

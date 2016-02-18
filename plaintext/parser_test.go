@@ -7,10 +7,10 @@ import (
 
 	"bytes"
 
-	"github.com/craiggwilson/songtools"
-	"github.com/craiggwilson/songtools/plaintext"
 	"github.com/kr/pretty"
 	. "github.com/smartystreets/goconvey/convey"
+	"github.com/songtools/songtools"
+	"github.com/songtools/songtools/plaintext"
 )
 
 const (
