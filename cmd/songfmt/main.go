@@ -39,17 +39,18 @@ func main() {
 		format := c.String("format")
 		args := c.Args()
 		if len(args) == 0 {
-			os.Stderr.WriteString("must specify at least one file\n")
+			fmt.Fprintln(os.Stderr, "must specify at least one file")
 			os.Exit(1)
 		}
 
 		if list && write {
-			os.Stderr.WriteString("cannot specify both list and write\n")
+			fmt.Fprintln(os.Stderr, "cannot specify both list and write")
 			os.Exit(2)
 		}
 
 		if format != "" && format != "plain" {
-			os.Stderr.WriteString(fmt.Sprintf("%q is not a valid format\n", format))
+			fmt.Fprintln(os.Stderr, fmt.Sprintf("%q is not a valid format", format))
+			os.Exit(3)
 		}
 
 		opt := &formatOptions{
@@ -63,12 +64,15 @@ func main() {
 
 			paths, err := filepath.Glob(p)
 			if err != nil {
-				os.Stderr.WriteString(fmt.Sprintf("path %q is invalid: %v", p, err))
+				fmt.Fprintln(os.Stderr, fmt.Sprintf("path %q is invalid: %v", p, err))
 				os.Exit(3)
 			}
 
 			for _, path := range paths {
-				formatSong(path, opt)
+				err := formatSong(path, opt)
+				if err != nil {
+					fmt.Fprintln(os.Stderr, err)
+				}
 			}
 		}
 	}
@@ -83,7 +87,6 @@ type formatOptions struct {
 	writer    songtools.SongSetWriter
 }
 
-// formatSong returns true if the formatting differs and an error if there was an issue with formatting the song.
 func formatSong(path string, opt *formatOptions) error {
 	inputBytes, err := ioutil.ReadFile(path)
 	if err != nil {
@@ -101,7 +104,7 @@ func formatSong(path string, opt *formatOptions) error {
 		opt.writer(&output, set)
 
 		if output.String() != string(inputBytes) {
-			os.Stdout.WriteString(path + "\n")
+			fmt.Fprintln(os.Stdout, path)
 		}
 	} else {
 		if opt.overwrite {
