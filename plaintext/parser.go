@@ -8,9 +8,6 @@ import (
 	"github.com/songtools/songtools"
 )
 
-//https://bitbucket.org/llg/songbook/src/0ba011f0a3112dd45a075d09f088df6a29981a58/song/chordpro.go?at=default&fileviewer=file-view-default
-//http://www.vromans.org/johan/projects/Chordii/chordpro/index.html
-
 // ParseSongSet the src to create a songtools.SongSet.
 func ParseSongSet(src io.Reader) (*songtools.SongSet, error) {
 
