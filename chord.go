@@ -1,11 +1,15 @@
 package songtools
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 // Chord is a named set of notes.
 type Chord struct {
 	Name   string
 	Root   Note
+	Base   Note
 	Suffix string
 }
 
@@ -16,9 +20,15 @@ func (c *Chord) String() string {
 // Interval returns a new chord at the specified interval.
 func (c *Chord) Interval(interval int, names *NoteNames) *Chord {
 	newRoot := c.Root.Interval(interval)
+	newBase := c.Base.Interval(interval)
 	newName := newRoot.StringFromNames(names) + c.Suffix
 
-	return &Chord{newName, newRoot, c.Suffix}
+	return &Chord{
+		Name:   newName,
+		Root:   newRoot,
+		Base:   newBase,
+		Suffix: c.Suffix,
+	}
 }
 
 // Note is a single note on a scale.
@@ -82,6 +92,9 @@ func (n Note) StringFromNames(names *NoteNames) string {
 
 // Interval returns a new note at the specified interval.
 func (n Note) Interval(interval int) Note {
+	if interval < noteCount {
+		interval += noteCount
+	}
 	return Note((int(n) + interval) % noteCount)
 }
 
@@ -122,7 +135,7 @@ func ParseTextForChords(text string) ([]*Chord, []int, bool) {
 	return chords, positions, len(chords) > 0
 }
 
-const validSuffixChars = "masd+M-/245679("
+const validSuffixChars = "masd+M-245679("
 
 // ParseChord parses some text and returns a chord.
 func ParseChord(text string) (*Chord, bool) {
@@ -130,13 +143,28 @@ func ParseChord(text string) (*Chord, bool) {
 		return nil, false
 	}
 
-	note, ok := parseNote(text)
+	// root note
+	rootNote, ok := parseNote(text)
 	if !ok {
 		return nil, false
 	}
 
+	baseNote := rootNote
+	// base note
+	idx := strings.Index(text, "/")
+	if idx != -1 {
+		baseText := text[idx+1:]
+		baseNote, ok = parseNote(baseText)
+		if !ok {
+			return nil, false
+		}
+
+		text = text[:idx-1]
+	}
+
+	// suffix
 	suffix := ""
-	offset := len(note.String())
+	offset := len(rootNote.String())
 	if len(text) > offset {
 		suffix = text[offset:]
 		found := false
@@ -154,7 +182,8 @@ func ParseChord(text string) (*Chord, bool) {
 
 	return &Chord{
 		Name:   text,
-		Root:   note,
+		Root:   rootNote,
+		Base:   baseNote,
 		Suffix: suffix,
 	}, true
 }
