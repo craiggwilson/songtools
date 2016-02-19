@@ -20,11 +20,11 @@ func main() {
 	app.UsageText = fmt.Sprintf("%v [flags] path", app.Name)
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
-			Name:  "from",
+			Name:  "inkey",
 			Usage: "The current key of the song",
 		},
 		cli.StringFlag{
-			Name:  "to",
+			Name:  "outkey",
 			Usage: "The desired key of the song",
 		},
 		cli.BoolFlag{
@@ -39,8 +39,8 @@ func main() {
 	app.Action = func(c *cli.Context) {
 		write := c.Bool("write")
 		format := c.String("format")
-		from := c.String("from")
-		to := c.String("to")
+		inkey := c.String("inkey")
+		outkey := c.String("outkey")
 
 		args := c.Args()
 		if len(args) == 0 {
@@ -57,28 +57,29 @@ func main() {
 			overwrite: write,
 			parser:    plaintext.ParseSongSet,
 			writer:    plaintext.WriteSongSet,
-			from:      from,
-			to:        to,
+			inkey:     inkey,
+			outkey:    outkey,
 		}
 
 		err := transposeSong(args[0], opt)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 		}
-
 	}
+
+	app.Run(os.Args)
 }
 
 type transposeOptions struct {
 	overwrite bool
 	parser    songtools.SongSetParser
 	writer    songtools.SongSetWriter
-	from      string
-	to        string
+	inkey     string
+	outkey    string
 }
 
 func transposeSong(path string, opt *transposeOptions) error {
-	noteNames, interval, err := songtools.NoteNamesAndIntervalFromKeyToKey(opt.from, opt.to)
+	noteNames, interval, err := songtools.NoteNamesAndIntervalFromKeyToKey(opt.inkey, opt.outkey)
 	if err != nil {
 		return fmt.Errorf("unable to get note names and interval: %v", err)
 	}
@@ -94,7 +95,10 @@ func transposeSong(path string, opt *transposeOptions) error {
 		return fmt.Errorf("unable to parse %q: %v", path, err)
 	}
 
-	transposed, _ := songtools.TransposeSongSet(set, interval, noteNames)
+	transposed, err := songtools.TransposeSongSet(set, interval, noteNames)
+	if err != nil {
+		return fmt.Errorf("unable to transpose %q from %q to %q: %v", path, opt.inkey, opt.outkey, err)
+	}
 
 	if opt.overwrite {
 		var output bytes.Buffer

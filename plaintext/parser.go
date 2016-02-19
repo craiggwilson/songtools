@@ -108,7 +108,6 @@ func (p *parser) parseSong() (*songtools.Song, error) {
 
 			chords, positions, isChordLine := songtools.ParseTextForChords(text)
 			if !isChordLine {
-
 				if line != nil && line.Text == "" {
 					line.Text = text
 				} else {

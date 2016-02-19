@@ -119,10 +119,10 @@ func ParseTextForChords(text string) ([]*Chord, []int, bool) {
 		positions = append(positions, pos)
 	}
 
-	return chords, positions, true
+	return chords, positions, len(chords) > 0
 }
 
-const validSuffixChars = "(sdoa+mM-/245679)"
+const validSuffixChars = "masd+M-/245679("
 
 // ParseChord parses some text and returns a chord.
 func ParseChord(text string) (*Chord, bool) {
@@ -139,13 +139,17 @@ func ParseChord(text string) (*Chord, bool) {
 	offset := len(note.String())
 	if len(text) > offset {
 		suffix = text[offset:]
+		found := false
 		for _, r := range validSuffixChars {
 			if r == rune(suffix[0]) {
+				found = true
 				break
 			}
 		}
 
-		return nil, false
+		if !found {
+			return nil, false
+		}
 	}
 
 	return &Chord{
