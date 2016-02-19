@@ -22,6 +22,9 @@ func (c *Chord) Interval(interval int, names *NoteNames) *Chord {
 	newRoot := c.Root.Interval(interval)
 	newBase := c.Base.Interval(interval)
 	newName := newRoot.StringFromNames(names) + c.Suffix
+	if newBase != newRoot {
+		newName += "/" + newBase.StringFromNames(names)
+	}
 
 	return &Chord{
 		Name:   newName,
