@@ -19,10 +19,10 @@ func init() {
 
 type songReaderWriter struct{}
 
-func (srw *songReaderWriter) Read(r io.Reader) (*songtools.SongSet, error) {
-	return ParseSongSet(r)
+func (srw *songReaderWriter) Read(r io.Reader) (*songtools.Song, error) {
+	return ParseSong(r)
 }
 
-func (srw *songReaderWriter) Write(w io.Writer, set *songtools.SongSet) error {
-	return WriteSongSet(w, set)
+func (srw *songReaderWriter) Write(w io.Writer, s *songtools.Song) error {
+	return WriteSong(w, s)
 }

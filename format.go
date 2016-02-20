@@ -7,12 +7,12 @@ import (
 
 // FormatReader represents the ability to read a SongSet.
 type FormatReader interface {
-	Read(io.Reader) (*SongSet, error)
+	Read(io.Reader) (*Song, error)
 }
 
 // FormatWriter represents the ability to write a SongSet.
 type FormatWriter interface {
-	Write(io.Writer, *SongSet) error
+	Write(io.Writer, *Song) error
 }
 
 // Format represents a named ability to read and write a SongSet.
@@ -52,6 +52,7 @@ func FormatByName(name string) (*Format, bool) {
 	return nil, false
 }
 
+// RegisterFormat registers a format.
 func RegisterFormat(f *Format) {
 	registeredFormats = append(registeredFormats, f)
 }

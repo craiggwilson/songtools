@@ -34,6 +34,14 @@ func (c *Chord) Interval(interval int, names *NoteNames) *Chord {
 	}
 }
 
+// Key is...
+type Key string
+
+var (
+	sharpKeys = []Key{"A", "F#m", "B", "G#m", "C", "Am", "C#", "A#m", "D", "Bm", "E", "C#m", "F#", "D#m", "G", "Em"}
+	flatKeys  = []Key{"Ab", "Fm", "Bb", "Gm", "Cb", "Abm", "Db", "Bbm", "Eb", "Cm", "F", "Dm", "Gb", "Ebm"}
+)
+
 // Note is a single note on a scale.
 type Note int
 
@@ -41,12 +49,22 @@ const (
 	noteCount = 12
 )
 
-func NoteNamesAndIntervalFromKeyToKey(original, transposed string) (*NoteNames, int, error) {
-	oChord, ok := ParseChord(original)
+// NoteNames is a dictionary for looking up a note name from it's chromatic number.
+type NoteNames [noteCount]string
+
+var (
+	sharpNoteNames = &NoteNames{"A", "A#", "B", "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#"}
+	flatNoteNames  = &NoteNames{"A", "Bb", "B", "C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab"}
+)
+
+// NoteNamesAndIntervalFromKeyToKey returns the NoteNames and the interval in order to transposed
+// the original key to the transposed key.
+func NoteNamesAndIntervalFromKeyToKey(original, transposed Key) (*NoteNames, int, error) {
+	oChord, ok := ParseChord(string(original))
 	if !ok {
 		return nil, 0, fmt.Errorf("not a key: %v", original)
 	}
-	tChord, ok := ParseChord(transposed)
+	tChord, ok := ParseChord(string(transposed))
 	if !ok {
 		return nil, 0, fmt.Errorf("not a key: %v", original)
 	}
@@ -60,7 +78,7 @@ func NoteNamesAndIntervalFromKeyToKey(original, transposed string) (*NoteNames, 
 }
 
 // NoteNamesFromKey gets the correct NoteNames for the given key.
-func NoteNamesFromKey(key string) (*NoteNames, error) {
+func NoteNamesFromKey(key Key) (*NoteNames, error) {
 	for i := 0; i < len(sharpKeys); i++ {
 		if sharpKeys[i] == key {
 			return sharpNoteNames, nil
@@ -73,16 +91,6 @@ func NoteNamesFromKey(key string) (*NoteNames, error) {
 
 	return nil, fmt.Errorf("invalid key name: %v", key)
 }
-
-// NoteNames is a dictionary for looking up a note name from it's chromatic number.
-type NoteNames [noteCount]string
-
-var (
-	sharpNoteNames = &NoteNames{"A", "A#", "B", "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#"}
-	flatNoteNames  = &NoteNames{"A", "Bb", "B", "C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab"}
-	sharpKeys      = []string{"A", "F#m", "B", "G#m", "C", "Am", "C#", "A#m", "D", "Bm", "E", "C#m", "F#", "D#m", "G", "Em"}
-	flatKeys       = []string{"Ab", "Fm", "Bb", "Gm", "Cb", "Abm", "Db", "Bbm", "Eb", "Cm", "F", "Dm", "Gb", "Ebm"}
-)
 
 func (n Note) String() string {
 	return n.StringFromNames(sharpNoteNames)

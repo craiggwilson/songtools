@@ -1,23 +1,31 @@
 package songtools
 
-import (
-	"io"
+const (
+	// The directive name for a title.
+	TitleDirectiveName = "title"
+	// The directive name for a key.
+	KeyDirectiveName = "key"
+	// The directive name for a comment.
+	CommentDirectiveName = "comment"
 )
-
-// SongSetParser defines a function to parse a SongSet from a Reader.
-type SongSetParser func(src io.Reader) (*SongSet, error)
-
-// SongSetWriter defines a function to write a SongSet to a Writer.
-type SongSetWriter func(w io.Writer, ss *SongSet) error
-
-// SongSet is a set of songs.
-type SongSet struct {
-	Songs []*Song
-}
 
 // Song is a set of nodes.
 type Song struct {
 	Nodes []SongNode
+}
+
+// Key gets the key the song is in. It will autodetect if necessary.
+func (s *Song) Key() (Key, bool) {
+	for _, n := range s.Nodes {
+		switch typedN := n.(type) {
+		case *Directive:
+			if typedN.Name == KeyDirectiveName {
+				return Key(typedN.Value), true
+			}
+		}
+	}
+
+	return "", false
 }
 
 // Chords gets all the chords present in the song.

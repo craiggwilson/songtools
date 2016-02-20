@@ -8,8 +8,8 @@ import (
 	"github.com/songtools/songtools"
 )
 
-// ParseSongSet the src to create a songtools.SongSet.
-func ParseSongSet(src io.Reader) (*songtools.SongSet, error) {
+// ParseSong the src to create a songtools.Song.
+func ParseSong(src io.Reader) (*songtools.Song, error) {
 	scanner, err := newScanner(src)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create a scanner: %v", err)
@@ -29,7 +29,7 @@ type parser struct {
 	scanner *scanner
 }
 
-func (p *parser) parse() (*songtools.SongSet, error) {
+func (p *parser) parse() (*songtools.Song, error) {
 	token, _, err := p.scanner.peek()
 	if err != nil {
 		return nil, fmt.Errorf("failed to consume initial token: %v", err)
@@ -38,15 +38,7 @@ func (p *parser) parse() (*songtools.SongSet, error) {
 		return nil, nil
 	}
 
-	// this format only supports a single song per file
-	set := &songtools.SongSet{}
-	song, err := p.parseSong()
-	if err != nil {
-		return nil, fmt.Errorf("error parsing song: %v", err)
-	}
-	set.Songs = append(set.Songs, song)
-
-	return set, nil
+	return p.parseSong()
 }
 
 func (p *parser) parseSong() (*songtools.Song, error) {
@@ -93,7 +85,7 @@ func (p *parser) parseSong() (*songtools.Song, error) {
 			if section != nil && numNewLines == 0 {
 				// we have text immediately following a section without a newline
 				directive := &songtools.Directive{
-					Name:  "comment",
+					Name:  songtools.CommentDirectiveName,
 					Value: text,
 				}
 				section.Nodes = append(section.Nodes, directive)
@@ -150,5 +142,19 @@ func parseDirective(text string) (*songtools.Directive, error) {
 		return nil, fmt.Errorf("directives must be a key value pair with an '=' as the seperator: %v", text)
 	}
 
-	return &songtools.Directive{parts[0], parts[1]}, nil
+	name := strings.ToLower(parts[0])
+	if name == "c" {
+		name = songtools.CommentDirectiveName
+	}
+	if name == "t" {
+		name = songtools.TitleDirectiveName
+	}
+	if name == "k" {
+		name = songtools.KeyDirectiveName
+	}
+
+	return &songtools.Directive{
+		Name:  name,
+		Value: parts[1],
+	}, nil
 }

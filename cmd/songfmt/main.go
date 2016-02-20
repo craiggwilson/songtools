@@ -112,14 +112,14 @@ func formatSong(path string, opt *formatOptions) error {
 		}
 	}
 
-	set, err := readFormat.Reader.Read(input)
+	song, err := readFormat.Reader.Read(input)
 	if err != nil {
 		return fmt.Errorf("unable to parse %q: %v", path, err)
 	}
 
 	if opt.diffonly {
 		var output bytes.Buffer
-		writeFormat.Writer.Write(&output, set)
+		writeFormat.Writer.Write(&output, song)
 
 		if output.String() != string(inputBytes) {
 			fmt.Fprintln(os.Stdout, path)
@@ -127,13 +127,13 @@ func formatSong(path string, opt *formatOptions) error {
 	} else {
 		if opt.overwrite {
 			var output bytes.Buffer
-			writeFormat.Writer.Write(&output, set)
+			writeFormat.Writer.Write(&output, song)
 			err = ioutil.WriteFile(path, output.Bytes(), 0644)
 			if err != nil {
 				return fmt.Errorf("unable to write %q: %v", path, err)
 			}
 		} else {
-			writeFormat.Writer.Write(os.Stdout, set)
+			writeFormat.Writer.Write(os.Stdout, song)
 		}
 	}
 

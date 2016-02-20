@@ -14,7 +14,7 @@ import (
 func main() {
 	app := cli.NewApp()
 	app.Name = "songtranspose"
-	app.Version = songtools.Version
+	app.Version = cmd.Version
 	app.Author = "Craig Wilson"
 	app.Usage = "Transposes a song."
 	app.UsageText = fmt.Sprintf("%v [flags] path", app.Name)
@@ -88,26 +88,28 @@ func transposeSong(path string, opt *transposeOptions) error {
 		return fmt.Errorf("unable to find format for %q: %v", path, err)
 	}
 
-	set, err := format.Reader.Read(input)
+	song, err := format.Reader.Read(input)
 	if err != nil {
 		return fmt.Errorf("unable to parse %q: %v", path, err)
 	}
 
-	inkey := opt.inkey
-	if inkey == "" {
-		chords := set.Songs[0].Chords()
-		fmt.Printf("% v\n", chords)
-		os.Exit(22)
+	currentKey := songtools.Key(opt.inkey)
+
+	if currentKey == "" {
+		var ok bool
+		if currentKey, ok = song.Key(); !ok {
+			return fmt.Errorf("unable to get key for song %q", path)
+		}
 	}
 
-	noteNames, interval, err := songtools.NoteNamesAndIntervalFromKeyToKey(inkey, opt.outkey)
+	noteNames, interval, err := songtools.NoteNamesAndIntervalFromKeyToKey(currentKey, songtools.Key(opt.outkey))
 	if err != nil {
 		return fmt.Errorf("unable to get note names and interval: %v", err)
 	}
 
-	transposed, err := songtools.TransposeSongSet(set, interval, noteNames)
+	transposed, err := songtools.TransposeSong(song, interval, noteNames)
 	if err != nil {
-		return fmt.Errorf("unable to transpose %q from %q to %q: %v", path, opt.inkey, opt.outkey, err)
+		return fmt.Errorf("unable to transpose %q from %q to %q: %v", path, currentKey, songtools.Key(opt.outkey), err)
 	}
 
 	if opt.overwrite {

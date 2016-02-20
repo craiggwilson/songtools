@@ -1,19 +1,5 @@
 package songtools
 
-// TransposeSongSet transposes a SongSet.
-func TransposeSongSet(ss *SongSet, interval int, names *NoteNames) (*SongSet, error) {
-	newSongs := []*Song{}
-	for _, s := range ss.Songs {
-		newSong, err := TransposeSong(s, interval, names)
-		if err != nil {
-			return nil, err
-		}
-		newSongs = append(newSongs, newSong)
-	}
-
-	return &SongSet{newSongs}, nil
-}
-
 // TransposeSong transposes a Song.
 func TransposeSong(s *Song, interval int, names *NoteNames) (*Song, error) {
 	newNodes := []SongNode{}
@@ -26,6 +12,17 @@ func TransposeSong(s *Song, interval int, names *NoteNames) (*Song, error) {
 			}
 
 			newNodes = append(newNodes, newSection)
+		case *Directive:
+			if typedN.Name == KeyDirectiveName {
+				if c, ok := ParseChord(typedN.Value); ok {
+					n = &Directive{
+						Name:  KeyDirectiveName,
+						Value: c.Interval(interval, names).Name,
+					}
+				}
+			}
+
+			newNodes = append(newNodes, n)
 		default:
 			newNodes = append(newNodes, n)
 		}
