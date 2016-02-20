@@ -20,6 +20,20 @@ type Song struct {
 	Nodes []SongNode
 }
 
+// Chords gets all the chords present in the song.
+func (s *Song) Chords() []*Chord {
+	chords := []*Chord{}
+
+	for _, n := range s.Nodes {
+		switch typedN := n.(type) {
+		case *Section:
+			chords = append(chords, typedN.Chords()...)
+		}
+	}
+
+	return chords
+}
+
 // SongNode represents a node that can appear in a song.
 type SongNode interface {
 	songNode()
@@ -49,6 +63,19 @@ type SectionKind string
 type Section struct {
 	Kind  SectionKind
 	Nodes []SectionNode
+}
+
+// Chords gets all the chords present in the section.
+func (s *Section) Chords() []*Chord {
+	chords := []*Chord{}
+	for _, n := range s.Nodes {
+		switch typedN := n.(type) {
+		case *Line:
+			chords = append(chords, typedN.Chords...)
+		}
+	}
+
+	return chords
 }
 
 // SectionNode represents a node that can appear in a section.

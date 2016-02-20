@@ -1,4 +1,4 @@
-package plaintext
+package plain
 
 import (
 	"fmt"
@@ -10,7 +10,6 @@ import (
 
 // ParseSongSet the src to create a songtools.SongSet.
 func ParseSongSet(src io.Reader) (*songtools.SongSet, error) {
-
 	scanner, err := newScanner(src)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create a scanner: %v", err)

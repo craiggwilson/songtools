@@ -1,4 +1,4 @@
-package plaintext_test
+package plain_test
 
 import (
 	"fmt"
@@ -10,7 +10,6 @@ import (
 	"github.com/kr/pretty"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/songtools/songtools"
-	"github.com/songtools/songtools/plaintext"
 )
 
 const (

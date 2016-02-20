@@ -1,4 +1,4 @@
-package plaintext
+package plain
 
 import (
 	"fmt"
@@ -54,6 +54,8 @@ func writeSongNode(w io.Writer, n songtools.SongNode) error {
 			}
 		}
 
+		anyChords := len(typedN.Chords()) > 0
+
 		for i, sn := range typedN.Nodes {
 			if i == 0 {
 				if d, ok := sn.(*songtools.Directive); ok && isCommentDirective(d) {
@@ -69,7 +71,7 @@ func writeSongNode(w io.Writer, n songtools.SongNode) error {
 					}
 				}
 			}
-			err := writeSectionNode(w, sn)
+			err := writeSectionNode(w, sn, anyChords)
 			if err != nil {
 				return err
 			}
@@ -86,14 +88,14 @@ func writeSongNode(w io.Writer, n songtools.SongNode) error {
 	return nil
 }
 
-func writeSectionNode(w io.Writer, n songtools.SectionNode) error {
+func writeSectionNode(w io.Writer, n songtools.SectionNode, blankLineForNoChords bool) error {
 	switch typedN := n.(type) {
 	case *songtools.Comment:
 		return writeComment(w, typedN)
 	case *songtools.Directive:
 		return writeDirective(w, typedN)
 	case *songtools.Line:
-		return writeLine(w, typedN)
+		return writeLine(w, typedN, blankLineForNoChords)
 	default:
 		panic("Unknown node")
 	}
@@ -114,7 +116,7 @@ func writeDirective(w io.Writer, d *songtools.Directive) error {
 	return err
 }
 
-func writeLine(w io.Writer, l *songtools.Line) error {
+func writeLine(w io.Writer, l *songtools.Line, blankLineForNoChords bool) error {
 	if l.Chords != nil {
 		pos := 0
 		for i := 0; i < len(l.Chords); i++ {
@@ -128,6 +130,11 @@ func writeLine(w io.Writer, l *songtools.Line) error {
 			}
 			pos = l.ChordPositions[i] + len(l.Chords[i].Name)
 		}
+		_, err := fmt.Fprintln(w)
+		if err != nil {
+			return err
+		}
+	} else if blankLineForNoChords {
 		_, err := fmt.Fprintln(w)
 		if err != nil {
 			return err

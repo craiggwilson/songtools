@@ -9,13 +9,13 @@ import (
 
 	"github.com/codegangsta/cli"
 	"github.com/songtools/songtools"
-	"github.com/songtools/songtools/plaintext"
+	"github.com/songtools/songtools/cmd"
 )
 
 func main() {
 	app := cli.NewApp()
 	app.Name = "songfmt"
-	app.Version = songtools.Version
+	app.Version = cmd.Version
 	app.Author = "Craig Wilson"
 	app.Usage = "Formats a song(s) according to a specified format."
 	app.UsageText = fmt.Sprintf("%v [flags] path...", app.Name)
@@ -29,14 +29,18 @@ func main() {
 			Usage: "Write result to (source) file instead of stdout",
 		},
 		cli.StringFlag{
-			Name:  "format, f",
-			Usage: "Specifies the format to be used. Defaults to the input format. Valid options are (plain).",
+			Name:  "infmt",
+			Usage: fmt.Sprintf("Specifies the format the song is currently in. Valid options are %v.", songtools.FormatNames()),
+		},
+		cli.StringFlag{
+			Name:  "outfmt",
+			Usage: fmt.Sprintf("Specifies the format for output. Defaults to the same as infmt. Valid options are %v.", songtools.FormatNames()),
 		},
 	}
 	app.Action = func(c *cli.Context) {
 		list := c.Bool("list")
 		write := c.Bool("write")
-		format := c.String("format")
+
 		args := c.Args()
 		if len(args) == 0 {
 			fmt.Fprintln(os.Stderr, "must specify at least one file")
@@ -48,16 +52,11 @@ func main() {
 			os.Exit(2)
 		}
 
-		if format != "" && format != "plain" {
-			fmt.Fprintln(os.Stderr, fmt.Sprintf("%q is not a valid format", format))
-			os.Exit(3)
-		}
-
 		opt := &formatOptions{
 			diffonly:  list,
 			overwrite: write,
-			parser:    plaintext.ParseSongSet,
-			writer:    plaintext.WriteSongSet,
+			infmt:     c.String("infmt"),
+			outfmt:    c.String("outfmt"),
 		}
 
 		for _, p := range args {
@@ -83,8 +82,8 @@ func main() {
 type formatOptions struct {
 	diffonly  bool
 	overwrite bool
-	parser    songtools.SongSetParser
-	writer    songtools.SongSetWriter
+	infmt     string
+	outfmt    string
 }
 
 func formatSong(path string, opt *formatOptions) error {
@@ -92,16 +91,35 @@ func formatSong(path string, opt *formatOptions) error {
 	if err != nil {
 		return fmt.Errorf("unable to read %q: %v", path, err)
 	}
-
 	input := bytes.NewBuffer(inputBytes)
-	set, err := opt.parser(input)
+
+	readFormat, err := cmd.FindReadFormat(opt.infmt, path, input)
+	if err != nil {
+		return fmt.Errorf("unable to find input format for %q: %v", path, err)
+	}
+
+	var writeFormat *songtools.Format
+	if opt.outfmt == "" {
+		if readFormat.Writer == nil {
+			return fmt.Errorf("the input format %q is unable to be used for writing", readFormat.Name)
+		}
+
+		writeFormat = readFormat
+	} else {
+		var ok bool
+		if writeFormat, ok = songtools.FormatByName(opt.outfmt); !ok {
+			return fmt.Errorf("unable to find output format %q for %q", opt.outfmt, path)
+		}
+	}
+
+	set, err := readFormat.Reader.Read(input)
 	if err != nil {
 		return fmt.Errorf("unable to parse %q: %v", path, err)
 	}
 
 	if opt.diffonly {
 		var output bytes.Buffer
-		opt.writer(&output, set)
+		writeFormat.Writer.Write(&output, set)
 
 		if output.String() != string(inputBytes) {
 			fmt.Fprintln(os.Stdout, path)
@@ -109,13 +127,13 @@ func formatSong(path string, opt *formatOptions) error {
 	} else {
 		if opt.overwrite {
 			var output bytes.Buffer
-			opt.writer(&output, set)
+			writeFormat.Writer.Write(&output, set)
 			err = ioutil.WriteFile(path, output.Bytes(), 0644)
 			if err != nil {
 				return fmt.Errorf("unable to write %q: %v", path, err)
 			}
 		} else {
-			opt.writer(os.Stdout, set)
+			writeFormat.Writer.Write(os.Stdout, set)
 		}
 	}
 

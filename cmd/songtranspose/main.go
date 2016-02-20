@@ -8,7 +8,7 @@ import (
 
 	"github.com/codegangsta/cli"
 	"github.com/songtools/songtools"
-	"github.com/songtools/songtools/plaintext"
+	"github.com/songtools/songtools/cmd"
 )
 
 func main() {
@@ -32,13 +32,12 @@ func main() {
 			Usage: "Write result to (source) file instead of stdout",
 		},
 		cli.StringFlag{
-			Name:  "format, f",
-			Usage: "Specifies the format to be used. Defaults to the input format. Valid options are (plain).",
+			Name:  "fmt, f",
+			Usage: "Specifies the format to be used. Valid options are (plain).",
 		},
 	}
 	app.Action = func(c *cli.Context) {
 		write := c.Bool("write")
-		format := c.String("format")
 		inkey := c.String("inkey")
 		outkey := c.String("outkey")
 
@@ -48,15 +47,14 @@ func main() {
 			os.Exit(1)
 		}
 
-		if format != "" && format != "plain" {
-			fmt.Fprintln(os.Stderr, fmt.Sprintf("%q is not a valid format\n", format))
+		if outkey == "" {
+			fmt.Fprintln(os.Stderr, "\"outkey\" is a required argument")
 			os.Exit(2)
 		}
 
 		opt := &transposeOptions{
 			overwrite: write,
-			parser:    plaintext.ParseSongSet,
-			writer:    plaintext.WriteSongSet,
+			fmt:       c.String("fmt"),
 			inkey:     inkey,
 			outkey:    outkey,
 		}
@@ -64,6 +62,7 @@ func main() {
 		err := transposeSong(args[0], opt)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
+			os.Exit(3)
 		}
 	}
 
@@ -72,27 +71,38 @@ func main() {
 
 type transposeOptions struct {
 	overwrite bool
-	parser    songtools.SongSetParser
-	writer    songtools.SongSetWriter
+	fmt       string
 	inkey     string
 	outkey    string
 }
 
 func transposeSong(path string, opt *transposeOptions) error {
-	noteNames, interval, err := songtools.NoteNamesAndIntervalFromKeyToKey(opt.inkey, opt.outkey)
-	if err != nil {
-		return fmt.Errorf("unable to get note names and interval: %v", err)
-	}
-
 	inputBytes, err := ioutil.ReadFile(path)
 	if err != nil {
 		return fmt.Errorf("unable to read %q: %v", path, err)
 	}
-
 	input := bytes.NewBuffer(inputBytes)
-	set, err := opt.parser(input)
+
+	format, err := cmd.FindReadWriteFormat(opt.fmt, path, input)
+	if err != nil {
+		return fmt.Errorf("unable to find format for %q: %v", path, err)
+	}
+
+	set, err := format.Reader.Read(input)
 	if err != nil {
 		return fmt.Errorf("unable to parse %q: %v", path, err)
+	}
+
+	inkey := opt.inkey
+	if inkey == "" {
+		chords := set.Songs[0].Chords()
+		fmt.Printf("% v\n", chords)
+		os.Exit(22)
+	}
+
+	noteNames, interval, err := songtools.NoteNamesAndIntervalFromKeyToKey(inkey, opt.outkey)
+	if err != nil {
+		return fmt.Errorf("unable to get note names and interval: %v", err)
 	}
 
 	transposed, err := songtools.TransposeSongSet(set, interval, noteNames)
@@ -102,13 +112,13 @@ func transposeSong(path string, opt *transposeOptions) error {
 
 	if opt.overwrite {
 		var output bytes.Buffer
-		opt.writer(&output, transposed)
+		format.Writer.Write(&output, transposed)
 		err = ioutil.WriteFile(path, output.Bytes(), 0644)
 		if err != nil {
 			return fmt.Errorf("unable to write %q: %v", path, err)
 		}
 	} else {
-		opt.writer(os.Stdout, transposed)
+		format.Writer.Write(os.Stdout, transposed)
 	}
 
 	return nil

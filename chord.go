@@ -146,6 +146,8 @@ func ParseChord(text string) (*Chord, bool) {
 		return nil, false
 	}
 
+	name := text
+
 	// root note
 	rootNote, ok := parseNote(text)
 	if !ok {
@@ -184,7 +186,7 @@ func ParseChord(text string) (*Chord, bool) {
 	}
 
 	return &Chord{
-		Name:   text,
+		Name:   name,
 		Root:   rootNote,
 		Base:   baseNote,
 		Suffix: suffix,
