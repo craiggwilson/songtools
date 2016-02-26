@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"github.com/songtools/songtools/format"
-	_ "github.com/songtools/songtools/format/html"  // formats are registered in the init functions.
-	_ "github.com/songtools/songtools/format/plain" // formats are registered in the init functions.
+	_ "github.com/songtools/songtools/format/chordsOverLyrics" // formats are registered in the init functions.
+	_ "github.com/songtools/songtools/format/html"             // formats are registered in the init functions.
 )
 
 // Version is the version of the applications.
@@ -48,7 +48,7 @@ func findFormat(name, path string, buffer *bytes.Buffer) (*format.Format, error)
 	var f *format.Format
 	if name == "" {
 		// TODO: try to detect format.
-		f, _ = format.ByName("plain")
+		f, _ = format.ByName(format.Default)
 	} else {
 		var ok bool
 		if f, ok = format.ByName(name); !ok {

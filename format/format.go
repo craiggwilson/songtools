@@ -7,6 +7,11 @@ import (
 	"github.com/songtools/songtools"
 )
 
+const (
+	// Default is the default format to use when none is specified or inferred.
+	Default = "chordsOverLyrics"
+)
+
 // Reader represents the ability to read a SongSet.
 type Reader interface {
 	Read(io.Reader) (*songtools.Song, error)
@@ -31,11 +36,22 @@ func Formats() []*Format {
 	return registeredFormats
 }
 
-// Names returns the names of the registered formats.
+// Names returns the names of the registered formats that can read and write.
 func Names() []string {
+	return FilteredNames(false, false)
+}
+
+// FilteredNames returns the names of the registered formats that match the criteria.
+func FilteredNames(mustRead, mustWrite bool) []string {
 	names := []string{}
 	for _, f := range registeredFormats {
-		names = append(names, f.Name)
+
+		readMatch := !mustRead || f.Reader != nil
+		writeMatch := !mustWrite || f.Writer != nil
+
+		if readMatch && writeMatch {
+			names = append(names, f.Name)
+		}
 	}
 
 	return names

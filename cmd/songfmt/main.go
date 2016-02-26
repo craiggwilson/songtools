@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/codegangsta/cli"
 	"github.com/songtools/songtools/cmd"
@@ -18,7 +19,7 @@ func main() {
 	app.Version = cmd.Version
 	app.Author = "Craig Wilson"
 	app.Usage = "Formats a song(s) according to a specified format."
-	app.UsageText = fmt.Sprintf("%v [flags] path...", app.Name)
+	app.UsageText = fmt.Sprintf("%v [flags] [path...]", app.Name)
 	app.Flags = []cli.Flag{
 		cli.BoolFlag{
 			Name:  "list, l",
@@ -30,21 +31,21 @@ func main() {
 		},
 		cli.StringFlag{
 			Name:  "infmt",
-			Usage: fmt.Sprintf("Specifies the format the song is currently in. Valid options are %v.", format.Names()),
+			Usage: fmt.Sprintf("Specifies the format the song is currently in. Valid options are: %v.", strings.Join(format.FilteredNames(true, false), ", ")),
 		},
 		cli.StringFlag{
 			Name:  "outfmt",
-			Usage: fmt.Sprintf("Specifies the format for output. Defaults to the same as infmt. Valid options are %v.", format.Names()),
+			Usage: fmt.Sprintf("Specifies the format for output. Defaults to the same as infmt. Valid options are: %v.", strings.Join(format.FilteredNames(false, true), ", ")),
 		},
 	}
+
 	app.Action = func(c *cli.Context) {
 		list := c.Bool("list")
 		write := c.Bool("write")
 
 		args := c.Args()
 		if len(args) == 0 {
-			fmt.Fprintln(os.Stderr, "must specify at least one file")
-			os.Exit(1)
+			args = append(args, "") // indicates to use stdio
 		}
 
 		if list && write {
@@ -61,10 +62,16 @@ func main() {
 
 		for _, p := range args {
 
-			paths, err := filepath.Glob(p)
-			if err != nil {
-				fmt.Fprintln(os.Stderr, fmt.Sprintf("path %q is invalid: %v", p, err))
-				os.Exit(3)
+			var paths []string
+			if p == "" {
+				paths = append(paths, "")
+			} else {
+				var err error
+				paths, err = filepath.Glob(p)
+				if err != nil {
+					fmt.Fprintln(os.Stderr, fmt.Sprintf("path %q is invalid: %v", p, err))
+					os.Exit(3)
+				}
 			}
 
 			for _, path := range paths {
@@ -87,10 +94,20 @@ type formatOptions struct {
 }
 
 func formatSong(path string, opt *formatOptions) error {
-	inputBytes, err := ioutil.ReadFile(path)
-	if err != nil {
-		return fmt.Errorf("unable to read %q: %v", path, err)
+	var inputBytes []byte
+	var err error
+	if path != "" {
+		inputBytes, err = ioutil.ReadFile(path)
+		if err != nil {
+			return fmt.Errorf("unable to read %q: %v", path, err)
+		}
+	} else {
+		inputBytes, err = ioutil.ReadAll(os.Stdin)
+		if err != nil {
+			return fmt.Errorf("unable to read stdin: %v", err)
+		}
 	}
+
 	input := bytes.NewBuffer(inputBytes)
 
 	readFormat, err := cmd.FindReadFormat(opt.infmt, path, input)
@@ -125,7 +142,7 @@ func formatSong(path string, opt *formatOptions) error {
 			fmt.Fprintln(os.Stdout, path)
 		}
 	} else {
-		if opt.overwrite {
+		if path != "" && opt.overwrite {
 			var output bytes.Buffer
 			writeFormat.Writer.Write(&output, song)
 			err = ioutil.WriteFile(path, output.Bytes(), 0644)

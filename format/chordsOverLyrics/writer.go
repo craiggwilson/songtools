@@ -1,4 +1,4 @@
-package plain
+package chordsOverLyrics
 
 import (
 	"fmt"

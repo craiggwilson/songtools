@@ -18,7 +18,7 @@ func main() {
 	app.Version = cmd.Version
 	app.Author = "Craig Wilson"
 	app.Usage = "Transposes a song."
-	app.UsageText = fmt.Sprintf("%v [flags] path", app.Name)
+	app.UsageText = fmt.Sprintf("%v [flags] [path]", app.Name)
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
 			Name:  "inkey",
@@ -34,7 +34,7 @@ func main() {
 		},
 		cli.StringFlag{
 			Name:  "fmt, f",
-			Usage: fmt.Sprintf("Specifies the format the song is currently in. Valid options are %v.", format.Names()),
+			Usage: fmt.Sprintf("Specifies the format the song is currently in. Valid options are %v.", format.FilteredNames(true, true)),
 		},
 	}
 	app.Action = func(c *cli.Context) {
@@ -44,8 +44,7 @@ func main() {
 
 		args := c.Args()
 		if len(args) == 0 {
-			fmt.Fprintln(os.Stderr, "must specify a file to transpose")
-			os.Exit(1)
+			args = append(args, "")
 		}
 
 		if outkey == "" {
@@ -78,10 +77,20 @@ type transposeOptions struct {
 }
 
 func transposeSong(path string, opt *transposeOptions) error {
-	inputBytes, err := ioutil.ReadFile(path)
-	if err != nil {
-		return fmt.Errorf("unable to read %q: %v", path, err)
+	var inputBytes []byte
+	var err error
+	if path != "" {
+		inputBytes, err = ioutil.ReadFile(path)
+		if err != nil {
+			return fmt.Errorf("unable to read %q: %v", path, err)
+		}
+	} else {
+		inputBytes, err = ioutil.ReadAll(os.Stdin)
+		if err != nil {
+			return fmt.Errorf("unable to read stdin: %v", err)
+		}
 	}
+
 	input := bytes.NewBuffer(inputBytes)
 
 	format, err := cmd.FindReadWriteFormat(opt.fmt, path, input)
@@ -113,7 +122,7 @@ func transposeSong(path string, opt *transposeOptions) error {
 		return fmt.Errorf("unable to transpose %q from %q to %q: %v", path, currentKey, songtools.Key(opt.outkey), err)
 	}
 
-	if opt.overwrite {
+	if path != "" && opt.overwrite {
 		var output bytes.Buffer
 		format.Writer.Write(&output, transposed)
 		err = ioutil.WriteFile(path, output.Bytes(), 0644)

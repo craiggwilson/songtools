@@ -1,4 +1,4 @@
-package plain
+package chordsOverLyrics
 
 import (
 	"io"
@@ -10,7 +10,7 @@ import (
 func init() {
 	rw := &plainReaderWriter{}
 	f := &format.Format{
-		Name:   "plain",
+		Name:   "chordsOverLyrics",
 		Reader: rw,
 		Writer: rw,
 	}
