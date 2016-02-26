@@ -9,6 +9,7 @@ import (
 	"github.com/codegangsta/cli"
 	"github.com/songtools/songtools"
 	"github.com/songtools/songtools/cmd"
+	"github.com/songtools/songtools/format"
 )
 
 func main() {
@@ -33,7 +34,7 @@ func main() {
 		},
 		cli.StringFlag{
 			Name:  "fmt, f",
-			Usage: "Specifies the format to be used. Valid options are (plain).",
+			Usage: fmt.Sprintf("Specifies the format the song is currently in. Valid options are %v.", format.Names()),
 		},
 	}
 	app.Action = func(c *cli.Context) {

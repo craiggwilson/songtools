@@ -1,25 +1,27 @@
-package songtools
+package format
 
 import (
 	"io"
 	"strings"
+
+	"github.com/songtools/songtools"
 )
 
-// FormatReader represents the ability to read a SongSet.
-type FormatReader interface {
-	Read(io.Reader) (*Song, error)
+// Reader represents the ability to read a SongSet.
+type Reader interface {
+	Read(io.Reader) (*songtools.Song, error)
 }
 
-// FormatWriter represents the ability to write a SongSet.
-type FormatWriter interface {
-	Write(io.Writer, *Song) error
+// Writer represents the ability to write a SongSet.
+type Writer interface {
+	Write(io.Writer, *songtools.Song) error
 }
 
 // Format represents a named ability to read and write a SongSet.
 type Format struct {
 	Name   string
-	Reader FormatReader
-	Writer FormatWriter
+	Reader Reader
+	Writer Writer
 }
 
 var registeredFormats = []*Format{}
@@ -29,8 +31,8 @@ func Formats() []*Format {
 	return registeredFormats
 }
 
-// FormatNames returns the names of the registered formats.
-func FormatNames() []string {
+// Names returns the names of the registered formats.
+func Names() []string {
 	names := []string{}
 	for _, f := range registeredFormats {
 		names = append(names, f.Name)
@@ -39,8 +41,8 @@ func FormatNames() []string {
 	return names
 }
 
-// FormatByName returns a registered format by name. It compares names case-insensitively.
-func FormatByName(name string) (*Format, bool) {
+// ByName returns a registered format by name. It compares names case-insensitively.
+func ByName(name string) (*Format, bool) {
 
 	name = strings.ToLower(name)
 	for _, f := range registeredFormats {
@@ -52,7 +54,7 @@ func FormatByName(name string) (*Format, bool) {
 	return nil, false
 }
 
-// RegisterFormat registers a format.
-func RegisterFormat(f *Format) {
+// Register registers a format.
+func Register(f *Format) {
 	registeredFormats = append(registeredFormats, f)
 }

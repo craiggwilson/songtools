@@ -1,11 +1,11 @@
 package songtools
 
 const (
-	// The directive name for a title.
+	// TitleDirectiveName is the key used for the title.
 	TitleDirectiveName = "title"
-	// The directive name for a key.
+	// KeyDirectiveName is the key used for the key.
 	KeyDirectiveName = "key"
-	// The directive name for a comment.
+	// CommentDirectiveName is the key used for a comment.
 	CommentDirectiveName = "comment"
 )
 
@@ -14,7 +14,21 @@ type Song struct {
 	Nodes []SongNode
 }
 
-// Key gets the key the song is in. It will autodetect if necessary.
+// Title gets the title of the song.
+func (s *Song) Title() (string, bool) {
+	for _, n := range s.Nodes {
+		switch typedN := n.(type) {
+		case *Directive:
+			if typedN.Name == TitleDirectiveName {
+				return typedN.Value, true
+			}
+		}
+	}
+
+	return "", false
+}
+
+// Key gets the key of the song. It will autodetect if necessary.
 func (s *Song) Key() (Key, bool) {
 	for _, n := range s.Nodes {
 		switch typedN := n.(type) {

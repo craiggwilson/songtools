@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 
 	"github.com/codegangsta/cli"
-	"github.com/songtools/songtools"
 	"github.com/songtools/songtools/cmd"
+	"github.com/songtools/songtools/format"
 )
 
 func main() {
@@ -30,11 +30,11 @@ func main() {
 		},
 		cli.StringFlag{
 			Name:  "infmt",
-			Usage: fmt.Sprintf("Specifies the format the song is currently in. Valid options are %v.", songtools.FormatNames()),
+			Usage: fmt.Sprintf("Specifies the format the song is currently in. Valid options are %v.", format.Names()),
 		},
 		cli.StringFlag{
 			Name:  "outfmt",
-			Usage: fmt.Sprintf("Specifies the format for output. Defaults to the same as infmt. Valid options are %v.", songtools.FormatNames()),
+			Usage: fmt.Sprintf("Specifies the format for output. Defaults to the same as infmt. Valid options are %v.", format.Names()),
 		},
 	}
 	app.Action = func(c *cli.Context) {
@@ -98,7 +98,7 @@ func formatSong(path string, opt *formatOptions) error {
 		return fmt.Errorf("unable to find input format for %q: %v", path, err)
 	}
 
-	var writeFormat *songtools.Format
+	var writeFormat *format.Format
 	if opt.outfmt == "" {
 		if readFormat.Writer == nil {
 			return fmt.Errorf("the input format %q is unable to be used for writing", readFormat.Name)
@@ -107,7 +107,7 @@ func formatSong(path string, opt *formatOptions) error {
 		writeFormat = readFormat
 	} else {
 		var ok bool
-		if writeFormat, ok = songtools.FormatByName(opt.outfmt); !ok {
+		if writeFormat, ok = format.ByName(opt.outfmt); !ok {
 			return fmt.Errorf("unable to find output format %q for %q", opt.outfmt, path)
 		}
 	}

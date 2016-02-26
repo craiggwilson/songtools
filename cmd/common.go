@@ -4,56 +4,57 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/songtools/songtools"
-	_ "github.com/songtools/songtools/plain" // formats are registered in the init functions.
+	"github.com/songtools/songtools/format"
+	_ "github.com/songtools/songtools/format/html"  // formats are registered in the init functions.
+	_ "github.com/songtools/songtools/format/plain" // formats are registered in the init functions.
 )
 
 // Version is the version of the applications.
 const Version = "0.1"
 
-// FindReadFormat gets a format that can read and write for the given path, buffer, and format.
-func FindReadWriteFormat(name, path string, buffer *bytes.Buffer) (*songtools.Format, error) {
-	format, err := findFormat(name, path, buffer)
+// FindReadWriteFormat gets a format that can read and write for the given path, buffer, and format.
+func FindReadWriteFormat(name, path string, buffer *bytes.Buffer) (*format.Format, error) {
+	f, err := findFormat(name, path, buffer)
 	if err != nil {
 		return nil, err
 	}
 
-	if format.Reader == nil {
-		return nil, fmt.Errorf("the format %q cannot be used for reading", format.Name)
+	if f.Reader == nil {
+		return nil, fmt.Errorf("the format %q cannot be used for reading", f.Name)
 	}
 
-	if format.Writer == nil {
-		return nil, fmt.Errorf("the format %q cannot be used for writer", format.Name)
+	if f.Writer == nil {
+		return nil, fmt.Errorf("the format %q cannot be used for writer", f.Name)
 	}
 
-	return format, nil
+	return f, nil
 }
 
 // FindReadFormat gets a format that can read for the given path, buffer, and format.
-func FindReadFormat(name, path string, buffer *bytes.Buffer) (*songtools.Format, error) {
-	format, err := findFormat(name, path, buffer)
+func FindReadFormat(name, path string, buffer *bytes.Buffer) (*format.Format, error) {
+	f, err := findFormat(name, path, buffer)
 	if err != nil {
 		return nil, err
 	}
 
-	if format.Reader == nil {
-		return nil, fmt.Errorf("the format %q cannot be used for reading", format.Name)
+	if f.Reader == nil {
+		return nil, fmt.Errorf("the format %q cannot be used for reading", f.Name)
 	}
 
-	return format, nil
+	return f, nil
 }
 
-func findFormat(name, path string, buffer *bytes.Buffer) (*songtools.Format, error) {
-	var format *songtools.Format
+func findFormat(name, path string, buffer *bytes.Buffer) (*format.Format, error) {
+	var f *format.Format
 	if name == "" {
 		// TODO: try to detect format.
-		format, _ = songtools.FormatByName("plain")
+		f, _ = format.ByName("plain")
 	} else {
 		var ok bool
-		if format, ok = songtools.FormatByName(name); !ok {
+		if f, ok = format.ByName(name); !ok {
 			return nil, fmt.Errorf("unable to find format %q", name)
 		}
 	}
 
-	return format, nil
+	return f, nil
 }
