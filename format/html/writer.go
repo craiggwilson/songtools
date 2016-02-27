@@ -18,8 +18,6 @@ const (
     <style>
         .song {
             margin: 2em;
-            font-family: monospace;
-            white-space: nowrap;
         }
         
         .song-title {
@@ -46,8 +44,9 @@ const (
             margin: 0 0;	
         }
         
-        .song-line {
+        .song-chord-line, .song-lyric-line {
             white-space: pre;
+            font-family: monospace;
         }
     </style>
 </head>
@@ -144,7 +143,7 @@ func writeDirective(d *songtools.Directive) string {
 }
 
 func writeLine(l *songtools.Line, blankLineForNoChords bool) string {
-	buf := "<div class='song-line'>"
+	buf := "<div class='song-line-group'>"
 	if l.Chords != nil {
 		buf += "<div class='song-chord-line'>"
 		pos := 0
