@@ -103,13 +103,12 @@ func transposeSong(path string, opt *transposeOptions) error {
 		return fmt.Errorf("unable to parse %q: %v", path, err)
 	}
 
+	cmd.SetSongTitleIfNecessary(path, song)
+
 	currentKey := songtools.Key(opt.inkey)
 
-	if currentKey == "" {
-		var ok bool
-		if currentKey, ok = song.Key(); !ok {
-			return fmt.Errorf("unable to get key for song %q", path)
-		}
+	if currentKey == "" && song.Key == "" {
+		return fmt.Errorf("unable to get key for song %q", path)
 	}
 
 	noteNames, interval, err := songtools.NoteNamesAndIntervalFromKeyToKey(currentKey, songtools.Key(opt.outkey))

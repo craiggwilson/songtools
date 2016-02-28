@@ -56,6 +56,16 @@ func (p *parser) parseSong() (*songtools.Song, error) {
 
 	for token != eofToken {
 		switch token {
+		case commentToken:
+			comment := &songtools.Comment{
+				Text:   text,
+				Hidden: false,
+			}
+			if section != nil {
+				section.Nodes = append(section.Nodes, comment)
+			} else {
+				song.Nodes = append(song.Nodes, comment)
+			}
 		case directiveToken:
 			d, err := parseDirective(text)
 			if err != nil {
@@ -69,7 +79,19 @@ func (p *parser) parseSong() (*songtools.Song, error) {
 			if section != nil {
 				section.Nodes = append(section.Nodes, d)
 			} else {
-				song.Nodes = append(song.Nodes, d)
+				switch d.Name {
+				case titleDirectiveName:
+					song.Title = d.Value
+				case subtitleDirectiveName:
+					song.Subtitles = append(song.Subtitles, d.Value)
+				case authorDirectiveName:
+					song.Authors = append(song.Authors, d.Value)
+				case keyDirectiveName:
+					song.Key = songtools.Key(d.Value)
+				default:
+					song.Nodes = append(song.Nodes, d)
+				}
+
 			}
 			line = nil
 			numNewLines = 0
@@ -84,9 +106,9 @@ func (p *parser) parseSong() (*songtools.Song, error) {
 		case textToken:
 			if section != nil && numNewLines == 0 {
 				// we have text immediately following a section without a newline
-				directive := &songtools.Directive{
-					Name:  songtools.CommentDirectiveName,
-					Value: text,
+				directive := &songtools.Comment{
+					Text:   text,
+					Hidden: false,
 				}
 				section.Nodes = append(section.Nodes, directive)
 				break
@@ -143,14 +165,15 @@ func parseDirective(text string) (*songtools.Directive, error) {
 	}
 
 	name := strings.ToLower(parts[0])
-	if name == "c" {
-		name = songtools.CommentDirectiveName
-	}
-	if name == "t" {
-		name = songtools.TitleDirectiveName
-	}
-	if name == "k" {
-		name = songtools.KeyDirectiveName
+	switch name {
+	case "t":
+		name = titleDirectiveName
+	case "st":
+		name = subtitleDirectiveName
+	case "a":
+		name = authorDirectiveName
+	case "k":
+		name = keyDirectiveName
 	}
 
 	return &songtools.Directive{

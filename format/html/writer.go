@@ -16,26 +16,59 @@ const (
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, intial-scale=1.0">
     <style>
+        * {
+            font-family: monospace;
+        }
+        
         .song {
-            margin: 2em;
+            margin: 24px;
         }
         
-        .song-title {
-            font-size: 1.5em;
+        h1 {
+            font-size: 26px;
+            font-weight: bold;
+            border-bottom-width: 1px;
+            border-bottom-style: dotted;
+            margin-bottom: 2px;
+            padding-bottom: 10px;
         }
         
-        .song-section {
-            margin: 2em 0;	
+        h2 {
+            font-size: 14px;
+            font-weight: bold;
+            margin: 0;
+            padding: 0;
+            text-decoration: underline;
         }
         
-        .song-section-kind {
-            font-size: 1.2em;
+        ul {
+            padding: 0;
+            margin: 0;
+        }
+        
+        ul li {
+            display: inline;
             font-weight: bold;
         }
         
-        .song-chorus {
-            padding-left: 1em;
-            font-style: italic;
+        ul.song-authors li {
+            font-weight: normal;
+        }
+        
+        ul li:nth-of-type(1n+2)::before {
+            content: "/ ";
+        }
+        
+        ul.song-authors::before {
+            content: "Author(s): "
+        }
+        
+        section {
+            margin: 16px 0;	
+        }
+        
+        .song-key::before {
+            content: "Key: "
         }
         
         .song-comment {
@@ -44,43 +77,59 @@ const (
             margin: 0 0;	
         }
         
-        .song-chord-line, .song-lyric-line {
+        .song-line-group {
             white-space: pre;
-            font-family: monospace;
+        }
+        
+        .song-chord-line {
+            font-weight: bold;
         }
     </style>
 </head>
-<body>
-    <div class='song'>
-        {{Song .}}
+<body class='song'>
+    <header>
+    {{if .Title}}
+        <h1 class='song-title'>{{.Title}}</h1>
+    {{end}}
+    {{if .Subtitles}}
+        <ul class='song-subtitles'>
+        {{range .Subtitles}}
+            <li>{{.}}</li>
+        {{end}}
+        </ul>
+    {{end}}
+    {{if .Authors}}
+        <ul class='song-authors'>
+        {{range .Authors}}
+            <li>{{.}}</li>
+        {{end}}
+        </ul>
+    {{end}}
+    {{if .Key}}
+        <div class='song-key'>{{.Key}}</div>
+    {{end}}
+    </header>
+    <div class='song-content'>
+        {{Content .}}
     </div>
 </body>
 </html>`
 )
 
-type songToWrite struct {
-	Title string
-	Song  *songtools.Song
-}
-
 // WriteSong writes a single song to the writer.
 func WriteSong(w io.Writer, s *songtools.Song) error {
 	funcs := make(map[string]interface{})
-	funcs["Song"] = writeSong
+	funcs["Content"] = writeContent
 	t := template.Must(template.New("song").Funcs(funcs).Parse(songTemplate))
 
-	title, _ := s.Title()
-	sToW := songToWrite{title, s}
-
-	return t.ExecuteTemplate(w, "song", sToW)
+	return t.ExecuteTemplate(w, "song", s)
 }
 
-func writeSong(s songToWrite) string {
+func writeContent(s *songtools.Song) string {
 	buf := ""
-	for _, n := range s.Song.Nodes {
+	for _, n := range s.Nodes {
 		buf += writeSongNode(n)
 	}
-
 	return buf
 }
 
@@ -89,27 +138,36 @@ func writeSongNode(n songtools.SongNode) string {
 	switch typedN := n.(type) {
 	case *songtools.Comment:
 		buf += writeComment(typedN)
-	case *songtools.Directive:
-		buf += writeDirective(typedN)
 	case *songtools.Section:
-		if typedN.Kind != "" {
-			// only use the first word for the css class
-			kind := strings.ToLower(strings.Split(string(typedN.Kind), " ")[0])
-			buf += "<div class='song-section song-" + kind + "'>"
-			buf += "<div class='song-section-kind'>" + string(typedN.Kind) + "</div>"
-		} else {
-			buf += "<div class='song-section song-verse'>"
-		}
 
 		anyChords := len(typedN.Chords()) > 0
+		for i, sn := range typedN.Nodes {
+			if i == 0 {
+				if typedN.Kind != "" {
+					// only use the first word for the css class
+					kind := strings.ToLower(strings.Split(string(typedN.Kind), " ")[0])
+					buf += "<section class='song-" + kind + "'>"
 
-		for _, sn := range typedN.Nodes {
+					kind = string(typedN.Kind)
+					cont := false
+					if c, ok := sn.(*songtools.Comment); ok {
+						kind += " " + c.Text
+						cont = true
+					}
+
+					buf += "<h2 class='song-section-kind'>" + kind + "</h2>"
+					if cont {
+						continue
+					}
+				} else {
+					buf += "<section class='song-verse'>"
+				}
+			}
+
 			buf += writeSectionNode(sn, anyChords)
 		}
 
-		buf += "</div>"
-	default:
-		panic("Unknown node")
+		buf += "</section>"
 	}
 
 	return buf
@@ -119,26 +177,20 @@ func writeSectionNode(n songtools.SectionNode, blankLineForNoChords bool) string
 	switch typedN := n.(type) {
 	case *songtools.Comment:
 		return writeComment(typedN)
-	case *songtools.Directive:
-		return writeDirective(typedN)
 	case *songtools.Line:
 		return writeLine(typedN, blankLineForNoChords)
 	default:
-		panic("Unknown node")
+		return ""
 	}
 }
 
 func writeComment(c *songtools.Comment) string {
-	buf := "<div class='song-hidden-comment'>"
-	buf += c.Text
-	buf += "</div>"
-	return buf
-}
-
-func writeDirective(d *songtools.Directive) string {
-	buf := "<div class='song-" + strings.Replace(strings.ToLower(d.Name), " ", "_", -1) + "'>"
-	buf += d.Value
-	buf += "</div>"
+	buf := ""
+	if !c.Hidden {
+		buf += "<div class='song-comment'>"
+		buf += c.Text
+		buf += "</div>"
+	}
 	return buf
 }
 

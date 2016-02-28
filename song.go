@@ -1,45 +1,12 @@
 package songtools
 
-const (
-	// TitleDirectiveName is the key used for the title.
-	TitleDirectiveName = "title"
-	// KeyDirectiveName is the key used for the key.
-	KeyDirectiveName = "key"
-	// CommentDirectiveName is the key used for a comment.
-	CommentDirectiveName = "comment"
-)
-
 // Song is a set of nodes.
 type Song struct {
-	Nodes []SongNode
-}
-
-// Title gets the title of the song.
-func (s *Song) Title() (string, bool) {
-	for _, n := range s.Nodes {
-		switch typedN := n.(type) {
-		case *Directive:
-			if typedN.Name == TitleDirectiveName {
-				return typedN.Value, true
-			}
-		}
-	}
-
-	return "", false
-}
-
-// Key gets the key of the song. It will autodetect if necessary.
-func (s *Song) Key() (Key, bool) {
-	for _, n := range s.Nodes {
-		switch typedN := n.(type) {
-		case *Directive:
-			if typedN.Name == KeyDirectiveName {
-				return Key(typedN.Value), true
-			}
-		}
-	}
-
-	return "", false
+	Title     string
+	Subtitles []string
+	Authors   []string
+	Key       Key
+	Nodes     []SongNode
 }
 
 // Chords gets all the chords present in the song.
@@ -72,10 +39,10 @@ type Directive struct {
 	Value string
 }
 
-// Comment contains text that represents a comment not intended
-// for output in print form.
+// Comment contains text that represents a comment.
 type Comment struct {
-	Text string
+	Text   string
+	Hidden bool
 }
 
 // SectionKind is the type of section. Examples are Chorus, Verse, and Bridge.

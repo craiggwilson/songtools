@@ -12,23 +12,25 @@ func TransposeSong(s *Song, interval int, names *NoteNames) (*Song, error) {
 			}
 
 			newNodes = append(newNodes, newSection)
-		case *Directive:
-			if typedN.Name == KeyDirectiveName {
-				if c, ok := ParseChord(typedN.Value); ok {
-					n = &Directive{
-						Name:  KeyDirectiveName,
-						Value: c.Interval(interval, names).Name,
-					}
-				}
-			}
-
-			newNodes = append(newNodes, n)
 		default:
 			newNodes = append(newNodes, n)
 		}
 	}
 
-	return &Song{newNodes}, nil
+	key := s.Key
+	if key != "" {
+		if c, ok := ParseChord(string(key)); ok {
+			key = Key(c.Interval(interval, names).Name)
+		}
+	}
+
+	return &Song{
+		Title:     s.Title,
+		Subtitles: s.Subtitles,
+		Authors:   s.Authors,
+		Key:       key,
+		Nodes:     newNodes,
+	}, nil
 }
 
 // TransposeSection transposes a Section.

@@ -3,7 +3,10 @@ package cmd
 import (
 	"bytes"
 	"fmt"
+	"path/filepath"
+	"strings"
 
+	"github.com/songtools/songtools"
 	"github.com/songtools/songtools/format"
 	_ "github.com/songtools/songtools/format/chordsOverLyrics" // formats are registered in the init functions.
 	_ "github.com/songtools/songtools/format/html"             // formats are registered in the init functions.
@@ -11,6 +14,9 @@ import (
 
 // Version is the version of the applications.
 const Version = "0.1"
+
+// FormatFinder is a function definition for finding a format.
+type FormatFinder func(string, string, *bytes.Buffer) (*format.Format, error)
 
 // FindReadWriteFormat gets a format that can read and write for the given path, buffer, and format.
 func FindReadWriteFormat(name, path string, buffer *bytes.Buffer) (*format.Format, error) {
@@ -57,4 +63,16 @@ func findFormat(name, path string, buffer *bytes.Buffer) (*format.Format, error)
 	}
 
 	return f, nil
+}
+
+// SetSongTitleIfNecessary sets the song title to the path if the song doesn't already have a title.
+func SetSongTitleIfNecessary(path string, s *songtools.Song) {
+	if path != "" && s.Title == "" {
+		_, filename := filepath.Split(path)
+		ext := filepath.Ext(path)
+		if ext != "" && strings.HasSuffix(filename, ext) {
+			filename = strings.TrimSuffix(filename, ext)
+		}
+		s.Title = filename
+	}
 }

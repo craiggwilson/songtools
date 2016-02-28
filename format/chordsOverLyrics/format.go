@@ -27,3 +27,10 @@ func (prw *plainReaderWriter) Read(r io.Reader) (*songtools.Song, error) {
 func (prw *plainReaderWriter) Write(w io.Writer, s *songtools.Song) error {
 	return WriteSong(w, s)
 }
+
+const (
+	titleDirectiveName    = "title"
+	subtitleDirectiveName = "subtitle"
+	keyDirectiveName      = "key"
+	authorDirectiveName   = "author"
+)

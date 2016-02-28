@@ -10,6 +10,32 @@ import (
 
 // WriteSong writes a single song to the writer.
 func WriteSong(w io.Writer, s *songtools.Song) error {
+
+	if s.Title != "" {
+		_, err := fmt.Fprintln(w, "#"+titleDirectiveName+"="+s.Title)
+		if err != nil {
+			return err
+		}
+	}
+	for _, st := range s.Subtitles {
+		_, err := fmt.Fprintln(w, "#"+subtitleDirectiveName+"="+st)
+		if err != nil {
+			return err
+		}
+	}
+	for _, a := range s.Authors {
+		_, err := fmt.Fprintln(w, "#"+authorDirectiveName+"="+a)
+		if err != nil {
+			return err
+		}
+	}
+	if s.Key != "" {
+		_, err := fmt.Fprintln(w, "#"+keyDirectiveName+"="+string(s.Key))
+		if err != nil {
+			return err
+		}
+	}
+
 	for _, n := range s.Nodes {
 		err := writeSongNode(w, n)
 		if err != nil {
@@ -46,8 +72,8 @@ func writeSongNode(w io.Writer, n songtools.SongNode) error {
 
 		for i, sn := range typedN.Nodes {
 			if i == 0 {
-				if d, ok := sn.(*songtools.Directive); ok && d.Name == songtools.CommentDirectiveName {
-					_, err := fmt.Fprintln(w, d.Value)
+				if c, ok := sn.(*songtools.Comment); ok {
+					_, err := fmt.Fprintln(w, c.Text)
 					if err != nil {
 						return err
 					}
@@ -90,16 +116,11 @@ func writeSectionNode(w io.Writer, n songtools.SectionNode, blankLineForNoChords
 }
 
 func writeComment(w io.Writer, c *songtools.Comment) error {
-	_, err := fmt.Fprintln(w, fmt.Sprintf("//%v", c.Text))
+	_, err := fmt.Fprintln(w, fmt.Sprintf("{%v}", c.Text))
 	return err
 }
 
 func writeDirective(w io.Writer, d *songtools.Directive) error {
-
-	if d.Name == songtools.CommentDirectiveName {
-		_, err := fmt.Fprintln(w, fmt.Sprintf("{%v}", d.Value))
-		return err
-	}
 	_, err := fmt.Fprintln(w, fmt.Sprintf("#%v=%v", d.Name, d.Value))
 	return err
 }

@@ -13,6 +13,7 @@ const (
 	eofToken token = -(iota + 1)
 	newLineToken
 	textToken
+	commentToken
 	directiveToken
 	sectionToken
 )
@@ -25,6 +26,8 @@ func (t token) String() string {
 		return "<newline>"
 	case textToken:
 		return "<text>"
+	case commentToken:
+		return "<comment>"
 	case directiveToken:
 		return "<directive>"
 	case sectionToken:
@@ -85,8 +88,11 @@ func (s *scanner) next() (token, string, error) {
 			return s.scanDirective()
 		case '[':
 			return s.scanSectionHeader()
-		case '{':
-			return s.scanCommentDirective()
+		case '/':
+			if s.pos+1 < len(s.src) && s.src[s.pos+1] == '/' {
+				return s.scanComment()
+			}
+			return s.scanText()
 		default:
 			return s.scanText()
 		}
@@ -95,19 +101,16 @@ func (s *scanner) next() (token, string, error) {
 	return eofToken, "", nil
 }
 
-func (s *scanner) scanCommentDirective() (token, string, error) {
+func (s *scanner) scanComment() (token, string, error) {
 	start := s.pos + 1
 	for s.pos < len(s.src) {
-		s.pos++
-		if s.src[s.pos] == '}' {
-			s.pos++
-			return directiveToken, "comment=" + s.src[start:s.pos-1], nil
+		if s.src[s.pos] == '\r' || s.src[s.pos] == '\n' {
+			break
 		}
+		s.pos++
 	}
-	if s.pos == len(s.src) {
-		return eofToken, "", fmt.Errorf("Expected '}', but found Eof")
-	}
-	return eofToken, "", nil
+
+	return commentToken, s.src[start:s.pos], nil
 }
 
 func (s *scanner) scanDirective() (token, string, error) {

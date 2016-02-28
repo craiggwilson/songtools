@@ -134,6 +134,8 @@ func formatSong(path string, opt *formatOptions) error {
 		return fmt.Errorf("unable to parse %q: %v", path, err)
 	}
 
+	cmd.SetSongTitleIfNecessary(path, song)
+
 	if opt.diffonly {
 		var output bytes.Buffer
 		writeFormat.Writer.Write(&output, song)
