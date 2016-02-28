@@ -10,6 +10,7 @@ import (
 	"github.com/songtools/songtools/format"
 	_ "github.com/songtools/songtools/format/chordsOverLyrics" // formats are registered in the init functions.
 	_ "github.com/songtools/songtools/format/html"             // formats are registered in the init functions.
+	_ "github.com/songtools/songtools/format/pdf"              // formats are registered in the init functions.
 )
 
 // Version is the version of the applications.
