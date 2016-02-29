@@ -119,7 +119,7 @@ func (p *parser) parseSong() (*songtools.Song, error) {
 				song.Nodes = append(song.Nodes, section)
 			}
 
-			chords, positions, isChordLine := songtools.ParseTextForChords(text)
+			chords, positions, isChordLine := parseTextForChords(text)
 			if !isChordLine {
 				if line != nil && line.Text == "" {
 					line.Text = text
@@ -180,4 +180,41 @@ func parseDirective(text string) (*songtools.Directive, error) {
 		Name:  name,
 		Value: parts[1],
 	}, nil
+}
+
+// ParseTextForChords parses a line of text for chords and their positions. It returns true if
+// this was just a line of chords and false if it contains text other than chords.
+func parseTextForChords(text string) ([]*songtools.Chord, []int, bool) {
+
+	chords := []*songtools.Chord{}
+	positions := []int{}
+
+	i := 0
+	for i < len(text) {
+		for i < len(text) && text[i] == ' ' {
+			i++
+		}
+
+		if i == len(text) {
+			break
+		}
+
+		name := ""
+		pos := i
+		for i < len(text) && text[i] != ' ' {
+			name += string(text[i])
+			i++
+		}
+
+		chord, ok := songtools.ParseChord(name)
+		if !ok {
+			// we aren't a chord line
+			return nil, nil, false
+		}
+
+		chords = append(chords, chord)
+		positions = append(positions, pos)
+	}
+
+	return chords, positions, len(chords) > 0
 }

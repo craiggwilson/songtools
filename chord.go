@@ -109,43 +109,6 @@ func (n Note) Interval(interval int) Note {
 	return Note((int(n) + interval) % noteCount)
 }
 
-// ParseTextForChords parses a line of text for chords and their positions. It returns true if
-// this was just a line of chords and false if it contains text other than chords.
-func ParseTextForChords(text string) ([]*Chord, []int, bool) {
-
-	chords := []*Chord{}
-	positions := []int{}
-
-	i := 0
-	for i < len(text) {
-		for i < len(text) && text[i] == ' ' {
-			i++
-		}
-
-		if i == len(text) {
-			break
-		}
-
-		name := ""
-		pos := i
-		for i < len(text) && text[i] != ' ' {
-			name += string(text[i])
-			i++
-		}
-
-		chord, ok := ParseChord(name)
-		if !ok {
-			// we aren't a chord line
-			return nil, nil, false
-		}
-
-		chords = append(chords, chord)
-		positions = append(positions, pos)
-	}
-
-	return chords, positions, len(chords) > 0
-}
-
 const validSuffixChars = "masd+M-245679("
 
 // ParseChord parses some text and returns a chord.
