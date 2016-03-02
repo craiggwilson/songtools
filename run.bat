@@ -1,0 +1,1 @@
+go run .\cmd\songtool\main.go .\cmd\songtool\transpose.go .\cmd\songtool\common.go %*
