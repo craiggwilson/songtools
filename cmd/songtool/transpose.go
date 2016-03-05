@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/songtools/songtools"
+	"github.com/songtools/songtools/format"
 )
 
 // TransposeCommand defines the options required for transposing a song.
@@ -21,11 +22,14 @@ var transposeCommand TransposeCommand
 
 func init() {
 
-	cli.AddCommand(
+	cmd, _ := cli.AddCommand(
 		"transpose",
 		"Transpose a song",
 		"Transposes a song from its current key into the desired key.",
 		&transposeCommand)
+
+	formatArg := cmd.FindOptionByLongName("format")
+	formatArg.Choices = format.FilteredNames(true, true)
 }
 
 // Execute executes the TransposeCommand.
@@ -99,7 +103,7 @@ func (cmd *TransposeCommand) Execute(args []string) error {
 	if cmd.Out != "" {
 		out, err = os.OpenFile(cmd.Out, os.O_CREATE, 0666)
 		if err != nil {
-			return fmt.Errorf("unable to open %q: %v", file, err)
+			return fmt.Errorf("unable to open %q: %v", cmd.Out, err)
 		}
 	}
 
