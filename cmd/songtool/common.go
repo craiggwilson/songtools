@@ -8,6 +8,8 @@ import (
 
 	"github.com/songtools/songtools"
 	"github.com/songtools/songtools/format"
+	_ "github.com/songtools/songtools/format/chordsOverLyrics" // formats are registered in the init functions.
+	_ "github.com/songtools/songtools/format/html"             // formats are registered in the init functions.
 )
 
 const version = "0.1"
