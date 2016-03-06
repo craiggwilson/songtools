@@ -22,7 +22,7 @@ type option struct {
 	CurrentKey    string `long:"currentKey" description:"The current key of the song. By default, will be discovered from the song itself."`
 	ToFormat      string `short:"f" long:"format" description:"The desired format of the song."`
 	ToKey         string `short:"k" long:"key" description:"The desired key of the song."`
-	Out           string `short:"o" long:"out" optional:"true" optional-value:"<input>" description:"The file to write the transposed song. If left unspecified, stdout will be used. When specified without an argument, the input file will be overwritten."`
+	Out           string `short:"o" long:"out" optional:"true" optional-value:"<unset>" description:"The file to write the transposed song. If left unspecified, stdout will be used. When specified without an argument, the input file will be overwritten."`
 }
 
 func main() {
@@ -56,12 +56,6 @@ func (cmd *option) execute(args []string) error {
 		if err != nil {
 			return fmt.Errorf("unable to open %q: %v", file, err)
 		}
-
-		if cmd.Out == "<input>" {
-			cmd.Out = file
-		}
-	} else if cmd.Out == "<input>" {
-		cmd.Out = ""
 	}
 
 	inBytes, err := ioutil.ReadAll(in)
@@ -122,6 +116,23 @@ func (cmd *option) execute(args []string) error {
 	out := os.Stdout
 	defer out.Close()
 
+	if cmd.Out == "<unset>" {
+		name := song.Title
+		if name == "" && file == "" {
+			return fmt.Errorf("'out' was specified, but the song does not have a title and the input was not a file")
+		} else if name == "" {
+			_, file := filepath.Split(file)
+			ext := filepath.Ext(file)
+			name = strings.TrimSuffix(file, ext)
+		}
+
+		if len(writeFormat.Extensions) > 0 {
+			name += "." + writeFormat.Extensions[0]
+		}
+
+		cmd.Out = name
+	}
+
 	if cmd.Out != "" {
 		out, err = os.OpenFile(cmd.Out, os.O_CREATE, 0666)
 		if err != nil {
@@ -133,31 +144,44 @@ func (cmd *option) execute(args []string) error {
 }
 
 func findReadFormat(name, path string, buffer *bytes.Buffer) (*format.Format, error) {
-	f, err := findFormat(name, path, buffer)
-	if err != nil {
-		return nil, err
-	}
-
-	if f.Reader == nil {
-		return nil, fmt.Errorf("the format %q cannot be used for reading", f.Name)
-	}
-
-	return f, nil
+	return findFormat(name, path, buffer, func(f *format.Format) bool {
+		return f.CanRead()
+	})
 }
 
-func findFormat(name, path string, buffer *bytes.Buffer) (*format.Format, error) {
-	var f *format.Format
-	if name == "" {
-		// TODO: try to detect format.
-		f, _ = format.ByName(format.Default)
-	} else {
-		var ok bool
-		if f, ok = format.ByName(name); !ok {
+func findFormat(name, path string, buffer *bytes.Buffer, filter func(*format.Format) bool) (*format.Format, error) {
+	formats := format.Formats{}
+
+	if name != "" {
+		f, ok := format.ByName(name)
+		if !ok {
 			return nil, fmt.Errorf("unable to find format %q", name)
+		}
+
+		formats = append(formats, f)
+	} else if path != "" {
+		ext := filepath.Ext(path)
+		if ext != "" {
+			formats = format.RegisteredFormats()
+			formats = formats.Filter(func(f *format.Format) bool {
+				for _, e := range f.Extensions {
+					if strings.ToLower(e) == ext {
+						return true
+					}
+				}
+
+				return false
+			})
 		}
 	}
 
-	return f, nil
+	formats = formats.Filter(filter)
+
+	if len(formats) > 0 {
+		return formats[0], nil
+	}
+
+	return nil, fmt.Errorf("unable to find format")
 }
 
 // SetSongTitleIfNecessary sets the song title to the path if the song doesn't already have a title.

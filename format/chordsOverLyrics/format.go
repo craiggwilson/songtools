@@ -10,9 +10,10 @@ import (
 func init() {
 	rw := &plainReaderWriter{}
 	f := &format.Format{
-		Name:   "chordsOverLyrics",
-		Reader: rw,
-		Writer: rw,
+		Name:       "chordsOverLyrics",
+		Reader:     rw,
+		Writer:     rw,
+		Extensions: []string{"txt"},
 	}
 
 	format.Register(f)

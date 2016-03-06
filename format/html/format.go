@@ -10,8 +10,9 @@ import (
 func init() {
 	rw := &htmlWriter{}
 	f := &format.Format{
-		Name:   "html",
-		Writer: rw,
+		Name:       "html",
+		Writer:     rw,
+		Extensions: []string{"html", "htm"},
 	}
 
 	format.Register(f)
