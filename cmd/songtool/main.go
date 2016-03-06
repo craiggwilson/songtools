@@ -17,18 +17,27 @@ import (
 
 var cli = flags.NewNamedParser("songtool", flags.Default)
 
-type option struct {
-	CurrentFormat string `long:"currentFormat" description:"Specifies the format of the song. By default, will be discovered from the song itself."`
-	CurrentKey    string `long:"currentKey" description:"The current key of the song. By default, will be discovered from the song itself."`
-	ToFormat      string `short:"f" long:"format" description:"The desired format of the song."`
-	ToKey         string `short:"k" long:"key" description:"The desired key of the song."`
-	Out           string `short:"o" long:"out" optional:"true" optional-value:"<unset>" description:"The file to write the transposed song. If left unspecified, stdout will be used. When specified without an argument, the input file will be overwritten."`
+type options struct {
+	CurrentFormat string `long:"currentFormat" description:"Specifies the format of the song. By default, an attempt will be made to discover it automatically."`
+	ToFormat      string `short:"f" long:"format" description:"The desired format of the song. When left unspecified, the 'currentFormat' will be used."`
+	CurrentKey    string `long:"currentKey" description:"The current key of the song. By default, an attempt will be made to discover it automatically."`
+	ToKey         string `short:"k" long:"key" description:"The desired key of the song. When left unspecified, no transposition will occur."`
+	Out           string `short:"o" long:"out" optional:"true" optional-value:"<unset>" description:"The file to write the transposed song. If left unspecified, stdout will be used. When specified without an argument, the song title will be used as the file name with the desired format's extension."`
 }
 
 func main() {
 
-	var opt option
-	cli.AddGroup("Global", "Global options", &opt)
+	var opt options
+	g, _ := cli.AddGroup("Global", "Global options", &opt)
+	currentFormatArg := g.FindOptionByLongName("currentFormat")
+	currentFormatArg.Choices = format.FilteredNames(func(f *format.Format) bool {
+		return f.CanRead()
+	})
+
+	toFormatArg := g.FindOptionByLongName("format")
+	toFormatArg.Choices = format.FilteredNames(func(f *format.Format) bool {
+		return f.CanWrite()
+	})
 
 	args, err := cli.Parse()
 	if err != nil {
@@ -41,7 +50,7 @@ func main() {
 	}
 }
 
-func (cmd *option) execute(args []string) error {
+func (cmd *options) execute(args []string) error {
 
 	if len(args) > 1 {
 		return fmt.Errorf("too many positional arguments")
