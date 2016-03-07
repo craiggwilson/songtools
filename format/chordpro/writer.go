@@ -125,31 +125,44 @@ func writeLine(w io.Writer, l *songtools.Line) error {
 		pos := 0
 		for i := 0; i < len(l.Chords); i++ {
 			if pos < l.ChordPositions[i] {
-				if len(l.Text) < l.ChordPositions[i] {
-					if len(l.Text) > pos {
-						_, err := fmt.Fprint(w, l.Text[pos:])
+				if pos < len(l.Text) {
+					if len(l.Text) < l.ChordPositions[i] {
+						_, err := fmt.Fprint(w, l.Text[pos:len(l.Text)])
 						if err != nil {
 							return err
 						}
+						pos = len(l.Text)
 					} else {
-						_, err := fmt.Fprint(w, strings.Repeat(" ", l.ChordPositions[i]-pos))
+						_, err := fmt.Fprint(w, l.Text[pos:l.ChordPositions[i]])
 						if err != nil {
 							return err
 						}
+						pos = l.ChordPositions[i]
 					}
-				} else {
-					_, err := fmt.Fprint(w, l.Text[pos:l.ChordPositions[i]-pos])
+				}
+
+				if pos >= l.ChordPositions[i] {
+					_, err := fmt.Fprint(w, strings.Repeat(" ", l.ChordPositions[i]-pos))
 					if err != nil {
 						return err
 					}
+					pos = l.ChordPositions[i]
 				}
 			}
+
 			_, err := fmt.Fprint(w, "["+l.Chords[i].Name+"]")
 			if err != nil {
 				return err
 			}
-			pos = l.ChordPositions[i]
 		}
+
+		if pos < len(l.Text) {
+			_, err := fmt.Fprint(w, l.Text[pos:])
+			if err != nil {
+				return err
+			}
+		}
+
 		_, err := fmt.Fprintln(w)
 		if err != nil {
 			return err

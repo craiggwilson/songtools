@@ -10,9 +10,10 @@ import (
 func init() {
 	rw := &cpReaderWriter{}
 	f := &format.Format{
-		Name:   "chordpro",
-		Reader: rw,
-		Writer: rw,
+		Name:       "chordpro",
+		Reader:     rw,
+		Writer:     rw,
+		Extensions: []string{".cho", ".chordpro", ".chopro"},
 	}
 
 	format.Register(f)

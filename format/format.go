@@ -26,9 +26,9 @@ type Writer interface {
 type Formats []*Format
 
 // Filter uses the filter to filter out certain formats.
-func (fs *Formats) Filter(filter func(*Format) bool) Formats {
+func (fs Formats) Filter(filter func(*Format) bool) Formats {
 	formats := Formats{}
-	for _, f := range registeredFormats {
+	for _, f := range fs {
 		if filter(f) {
 			formats = append(formats, f)
 		}

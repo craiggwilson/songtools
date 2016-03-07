@@ -13,7 +13,7 @@ func init() {
 		Name:       "chordsOverLyrics",
 		Reader:     rw,
 		Writer:     rw,
-		Extensions: []string{"txt"},
+		Extensions: []string{".txt"},
 	}
 
 	format.Register(f)

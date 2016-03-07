@@ -11,6 +11,7 @@ import (
 	"github.com/jessevdk/go-flags"
 	"github.com/songtools/songtools"
 	"github.com/songtools/songtools/format"
+	_ "github.com/songtools/songtools/format/chordpro"         // formats are registered in the init functions.
 	_ "github.com/songtools/songtools/format/chordsOverLyrics" // formats are registered in the init functions.
 	_ "github.com/songtools/songtools/format/html"             // formats are registered in the init functions.
 )
@@ -136,7 +137,7 @@ func (cmd *options) execute(args []string) error {
 		}
 
 		if len(writeFormat.Extensions) > 0 {
-			name += "." + writeFormat.Extensions[0]
+			name += writeFormat.Extensions[0]
 		}
 
 		cmd.Out = name

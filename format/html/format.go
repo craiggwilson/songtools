@@ -12,7 +12,7 @@ func init() {
 	f := &format.Format{
 		Name:       "html",
 		Writer:     rw,
-		Extensions: []string{"html", "htm"},
+		Extensions: []string{".html", ".htm"},
 	}
 
 	format.Register(f)
