@@ -34,6 +34,8 @@ const (
 	subtitleDirectiveName      = "subtitle"
 	keyDirectiveName           = "key"
 	authorDirectiveName        = "author"
+	startOfSectionPrefix       = "start_of_"
+	endOfSectionPrefix         = "end_of_"
 	startOfChorusDirectiveName = "start_of_chorus"
 	endOfChorusDirectiveName   = "end_of_chorus"
 	startOfBridgeDirectiveName = "start_of_bridge"

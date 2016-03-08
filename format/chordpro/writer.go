@@ -53,13 +53,15 @@ func writeSongNode(w io.Writer, n songtools.SongNode) error {
 	case *songtools.Directive:
 		return writeDirective(w, typedN.Name, typedN.Value)
 	case *songtools.Section:
-		switch typedN.Kind {
-		case "Chorus":
-			writeDirective(w, startOfChorusDirectiveName, "")
-		case "Bridge":
-			writeDirective(w, startOfBridgeDirectiveName, "")
-		default:
-			writeDirective(w, commentDirectiveName, string(typedN.Kind))
+		if typedN.Kind != "" {
+			switch typedN.Kind {
+			case "Chorus":
+				writeDirective(w, startOfChorusDirectiveName, "")
+			case "Bridge":
+				writeDirective(w, startOfBridgeDirectiveName, "")
+			default:
+				writeDirective(w, commentDirectiveName, string(typedN.Kind))
+			}
 		}
 
 		for _, sn := range typedN.Nodes {

@@ -41,11 +41,14 @@ type scanner struct {
 	src string
 	pos int
 
-	isPeeked  bool
-	peekPos   int
-	peekToken token
-	peekText  string
-	peekErr   error
+	peeks []peek
+}
+
+type peek struct {
+	pos   int
+	token token
+	text  string
+	err   error
 }
 
 // NewScanner creates a new Scanner from a Reader.
@@ -60,23 +63,30 @@ func newScanner(src io.Reader) (*scanner, error) {
 }
 
 // Peek returns the next token, but doesn't advance the scanner.
-func (s *scanner) peek() (token, string, error) {
-	if !s.isPeeked {
-		s.isPeeked = true
-		s.peekPos = s.pos
-		s.peekToken, s.peekText, s.peekErr = s.next()
+func (s *scanner) la(count int) (token, string, error) {
+	for len(s.peeks) <= count {
+		nextPos := s.pos
+		nextToken, nextText, nextErr := s._internalNext()
+		s.peeks = append(s.peeks, peek{nextPos, nextToken, nextText, nextErr})
 	}
 
-	return s.peekToken, s.peekText, s.peekErr
+	peek := s.peeks[count]
+
+	return peek.token, peek.text, peek.err
 }
 
 // Next scans for the next token and the associated string.
 func (s *scanner) next() (token, string, error) {
-	if s.isPeeked {
-		s.isPeeked = false
-		return s.peekToken, s.peekText, s.peekErr
+	if len(s.peeks) > 0 {
+		peek := s.peeks[0]
+		s.peeks = s.peeks[1:]
+		return peek.token, peek.text, peek.err
 	}
 
+	return s._internalNext()
+}
+
+func (s *scanner) _internalNext() (token, string, error) {
 	if s.pos < len(s.src) {
 		switch s.src[s.pos] {
 		case '\r':
@@ -87,6 +97,8 @@ func (s *scanner) next() (token, string, error) {
 			return s.scanComment()
 		case '[':
 			return s.scanChord()
+		case '{':
+			return s.scanDirective()
 		default:
 			return s.scanText()
 		}

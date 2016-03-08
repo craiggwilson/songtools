@@ -5,6 +5,7 @@ import (
 	"io"
 	"strings"
 
+	"github.com/kr/pretty"
 	"github.com/songtools/songtools"
 )
 
@@ -30,7 +31,7 @@ type parser struct {
 }
 
 func (p *parser) parse() (*songtools.Song, error) {
-	token, _, err := p.scanner.peek()
+	token, _, err := p.scanner.la(0)
 	if err != nil {
 		return nil, fmt.Errorf("failed to consume initial token: %v", err)
 	}
@@ -88,14 +89,44 @@ func (p *parser) parseSong() (*songtools.Song, error) {
 			case endOfBridgeDirectiveName:
 				section = nil
 			case commentDirectiveName:
-				comment := &songtools.Comment{
-					Text:   d.Value,
-					Hidden: false,
-				}
+
 				if section == nil {
-					song.Nodes = append(song.Nodes, comment)
+					la := 1
+					for {
+						// we are going to look forward past all the comments until we find a non-comment
+						nextToken, _, nextErr := p.scanner.la(la)
+						if nextErr != nil {
+							break
+						}
+						if nextToken == directiveToken {
+							innerD, err := parseDirective(text)
+							if err != nil {
+								break
+							}
+							if innerD.Name != commentDirectiveName {
+								break
+							}
+							la += 2
+						} else if nextToken == chordToken || nextToken == textToken {
+							section = &songtools.Section{
+								Kind: songtools.SectionKind(d.Value),
+							}
+							song.Nodes = append(song.Nodes, section)
+							break
+						} else {
+							break
+						}
+					}
 				} else {
-					section.Nodes = append(section.Nodes, comment)
+					comment := &songtools.Comment{
+						Text:   d.Value,
+						Hidden: false,
+					}
+					if section == nil {
+						song.Nodes = append(song.Nodes, comment)
+					} else {
+						section.Nodes = append(section.Nodes, comment)
+					}
 				}
 			case titleDirectiveName:
 				song.Title = d.Value
@@ -106,6 +137,8 @@ func (p *parser) parseSong() (*songtools.Song, error) {
 			case keyDirectiveName:
 				song.Key = songtools.Key(d.Value)
 			default:
+				// choruses and bridges have end tags, which means we can just wait until those show up
+				// and not have to guess at the end of a section.
 				if section != nil && numNewLines == 2 && section.Kind != "Chorus" && section.Kind != "Bridge" {
 					section = nil
 				}
@@ -126,6 +159,7 @@ func (p *parser) parseSong() (*songtools.Song, error) {
 
 			if line == nil {
 				line = &songtools.Line{}
+				section.Nodes = append(section.Nodes, line)
 			}
 
 			chord, ok := songtools.ParseChord(text)
@@ -134,7 +168,7 @@ func (p *parser) parseSong() (*songtools.Song, error) {
 			}
 
 			line.Chords = append(line.Chords, chord)
-			line.ChordPositions = append(line.ChordPositions, len(text))
+			line.ChordPositions = append(line.ChordPositions, len(line.Text))
 
 		case textToken:
 			if section == nil {
@@ -144,11 +178,11 @@ func (p *parser) parseSong() (*songtools.Song, error) {
 
 			if line == nil {
 				line = &songtools.Line{}
+				section.Nodes = append(section.Nodes, line)
 			}
 
 			line.Text += text
 
-			section.Nodes = append(section.Nodes, line)
 			numNewLines = 0
 		case newLineToken:
 			line = nil
@@ -157,6 +191,7 @@ func (p *parser) parseSong() (*songtools.Song, error) {
 				section = nil
 				numNewLines = 0
 			}
+
 			break
 		}
 
@@ -165,6 +200,8 @@ func (p *parser) parseSong() (*songtools.Song, error) {
 			return nil, err
 		}
 	}
+
+	fmt.Printf("\n\n%# v\n\n", pretty.Formatter(song))
 
 	return song, nil
 }
