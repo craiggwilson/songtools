@@ -129,7 +129,12 @@ func writeLine(w io.Writer, l *songtools.Line, blankLineForNoChords bool) error 
 	if l.Chords != nil {
 		pos := 0
 		for i := 0; i < len(l.Chords); i++ {
-			_, err := fmt.Fprint(w, strings.Repeat(" ", l.ChordPositions[i]-pos))
+
+			diff := l.ChordPositions[i] - pos
+			if i > 0 && diff <= 0 {
+				diff = l.ChordPositions[i] - l.ChordPositions[i-1]
+			}
+			_, err := fmt.Fprint(w, strings.Repeat(" ", diff))
 			if err != nil {
 				return err
 			}

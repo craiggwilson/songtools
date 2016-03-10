@@ -200,7 +200,11 @@ func writeLine(l *songtools.Line, blankLineForNoChords bool) string {
 		buf += "<div class='song-chord-line'>"
 		pos := 0
 		for i := 0; i < len(l.Chords); i++ {
-			buf += strings.Repeat(" ", l.ChordPositions[i]-pos)
+			diff := l.ChordPositions[i] - pos
+			if i > 0 && diff <= 0 {
+				diff = l.ChordPositions[i] - l.ChordPositions[i-1]
+			}
+			buf += strings.Repeat(" ", diff)
 			buf += "<span class='song-chord'>"
 			buf += l.Chords[i].Name
 			buf += "</span>"
