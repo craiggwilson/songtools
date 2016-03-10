@@ -5,7 +5,6 @@ import (
 	"io"
 	"strings"
 
-	"github.com/kr/pretty"
 	"github.com/songtools/songtools"
 )
 
@@ -200,8 +199,6 @@ func (p *parser) parseSong() (*songtools.Song, error) {
 			return nil, err
 		}
 	}
-
-	fmt.Printf("\n\n%# v\n\n", pretty.Formatter(song))
 
 	return song, nil
 }
