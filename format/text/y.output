@@ -1,0 +1,64 @@
+
+state 0
+	$accept: .root $end 
+
+	LBRACKET  shift 4
+	.  error
+
+	root  goto 1
+	song_component  goto 3
+	song_components  goto 2
+
+state 1
+	$accept:  root.$end 
+
+	$end  accept
+	.  error
+
+
+state 2
+	root:  song_components.    (1)
+	song_components:  song_components.song_component 
+
+	LBRACKET  shift 4
+	.  reduce 1 (src line 30)
+
+	song_component  goto 5
+
+state 3
+	song_components:  song_component.    (2)
+
+	.  reduce 2 (src line 38)
+
+
+state 4
+	song_component:  LBRACKET.RBRACKET 
+
+	RBRACKET  shift 6
+	.  error
+
+
+state 5
+	song_components:  song_components song_component.    (3)
+
+	.  reduce 3 (src line 43)
+
+
+state 6
+	song_component:  LBRACKET RBRACKET.    (4)
+
+	.  reduce 4 (src line 48)
+
+
+8 terminals, 4 nonterminals
+5 grammar rules, 7/8000 states
+0 shift/reduce, 0 reduce/reduce conflicts reported
+53 working sets used
+memory: parser 3/120000
+0 extra closures
+3 shift entries, 1 exceptions
+4 goto entries
+0 entries saved by goto default
+Optimizer space used: output 6/120000
+6 table entries, 0 zero
+maximum spread: 6, maximum offset: 6
