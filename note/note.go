@@ -1,24 +1,20 @@
 package note
 
 // Note is a single note in a scale.
-type Note string
+type Note uint8
 
-// Note constants
-const (
-	AFlat  Note = "Ab"
-	A      Note = "A"
-	ASharp Note = "A#"
-	B      Note = "B"
-	C      Note = "C"
-	CSharp Note = "C#"
-	DFlat  Note = "Db"
-	D      Note = "D"
-	DSharp Note = "D#"
-	EFlat  Note = "Eb"
-	E      Note = "E"
-	F      Note = "F"
-	FSharp Note = "F#"
-	GFlat  Note = "Gb"
-	G      Note = "G"
-	GSharp Note = "G#"
-)
+// Namer provides the name for note.
+type Namer interface {
+	Name(Note) (string, error)
+}
+
+// Parser parses the string into a note.
+type Parser interface {
+	Parse(string) (Note, uint8, error)
+}
+
+// Language handles naming and parsing notes.
+type Language interface {
+	Namer
+	Parser
+}
